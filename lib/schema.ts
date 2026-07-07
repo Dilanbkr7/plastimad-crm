@@ -7,6 +7,7 @@ import {
   text,
   timestamp,
   uniqueIndex,
+  uuid,
   varchar,
 } from "drizzle-orm/pg-core";
 
@@ -644,6 +645,82 @@ export const orders = pgTable(
     index("orders_zone_idx").on(table.zoneId),
     index("orders_payment_status_idx").on(
       table.paymentStatus,
+    ),
+  ],
+);
+
+/**
+ * Historial inmutable de cambios de estado.
+ *
+ * Cada vez que un administrador modifica un pedido,
+ * se crea una nueva fila. Las filas anteriores no se
+ * reemplazan ni se eliminan.
+ */
+export const orderStatusHistory = pgTable(
+  "order_status_history",
+  {
+    id: serial("id").primaryKey(),
+
+    orderId: integer("order_id")
+      .notNull()
+      .references(() => orders.id, {
+        onDelete: "cascade",
+      }),
+
+    /**
+     * Puede ser null cuando se registra el estado
+     * inicial de un pedido antiguo.
+     */
+    previousStatus: varchar("previous_status", {
+      length: 30,
+    }),
+
+    newStatus: varchar("new_status", {
+      length: 30,
+    }).notNull(),
+
+    /**
+     * Observación administrativa opcional.
+     *
+     * Ejemplo:
+     * "Cliente confirmó la dirección por WhatsApp".
+     */
+    note: text("note"),
+
+    /**
+     * UUID del usuario autenticado en Supabase Auth.
+     *
+     * No se declara una FK hacia auth.users para evitar
+     * acoplar las migraciones al esquema interno de Supabase.
+     */
+    changedByUserId: uuid("changed_by_user_id"),
+
+    /**
+     * Se conserva también el correo utilizado en el momento
+     * del cambio. Así la auditoría sigue siendo entendible
+     * aunque posteriormente se modifique o elimine el usuario.
+     */
+    changedByEmail: varchar("changed_by_email", {
+      length: 255,
+    }).notNull(),
+
+    createdAt: timestamp("created_at", {
+      withTimezone: true,
+    })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("order_status_history_order_idx").on(
+      table.orderId,
+    ),
+
+    index("order_status_history_created_at_idx").on(
+      table.createdAt,
+    ),
+
+    index("order_status_history_new_status_idx").on(
+      table.newStatus,
     ),
   ],
 );
