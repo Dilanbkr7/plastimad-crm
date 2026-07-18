@@ -724,3 +724,272 @@ export const orderStatusHistory = pgTable(
     ),
   ],
 );
+
+/**
+ * Leads comerciales capturados desde el asistente web.
+ *
+ * Una conversación puede existir inicialmente sin datos
+ * personales. El lead se crea cuando el visitante proporciona
+ * nombre, teléfono o correo y acepta el tratamiento de datos.
+ */
+export const leads = pgTable(
+  "leads",
+  {
+    id: serial("id").primaryKey(),
+
+    /**
+     * Identificador público seguro.
+     * Se utilizará en URLs y APIs en lugar del id numérico.
+     */
+    publicId: uuid("public_id")
+      .notNull()
+      .defaultRandom(),
+
+    name: varchar("name", {
+      length: 150,
+    }),
+
+    phone: varchar("phone", {
+      length: 20,
+    }),
+
+    email: varchar("email", {
+      length: 255,
+    }),
+
+    /**
+     * Fuentes previstas:
+     * WEB_CHAT
+     * LANDING
+     * WHATSAPP
+     * MANUAL
+     */
+    source: varchar("source", {
+      length: 50,
+    })
+      .notNull()
+      .default("WEB_CHAT"),
+
+    /**
+     * Estados previstos:
+     * NUEVO
+     * CONTACTADO
+     * INTERESADO
+     * CONVERTIDO
+     * DESCARTADO
+     */
+    status: varchar("status", {
+      length: 30,
+    })
+      .notNull()
+      .default("NUEVO"),
+
+    /**
+     * Tema o producto que interesa al visitante.
+     */
+    interest: text("interest"),
+
+    /**
+     * Resumen para que el equipo comercial
+     * comprenda rápidamente la consulta.
+     */
+    summary: text("summary"),
+
+    /**
+     * Nota interna agregada desde el CRM.
+     */
+    notes: text("notes"),
+
+    /**
+     * Indica que la conversación debe ser atendida
+     * por una persona.
+     */
+    requiresHuman: boolean("requires_human")
+      .notNull()
+      .default(false),
+
+    /**
+     * Consentimiento para almacenar los datos
+     * proporcionados por el visitante.
+     */
+    consentAccepted: boolean("consent_accepted")
+      .notNull()
+      .default(false),
+
+    consentAcceptedAt: timestamp(
+      "consent_accepted_at",
+      {
+        withTimezone: true,
+      },
+    ),
+
+    /**
+     * Pedido asociado cuando el lead se convierte.
+     */
+    convertedOrderId: integer(
+      "converted_order_id",
+    ).references(() => orders.id, {
+      onDelete: "set null",
+    }),
+
+    createdAt: timestamp("created_at", {
+      withTimezone: true,
+    })
+      .notNull()
+      .defaultNow(),
+
+    updatedAt: timestamp("updated_at", {
+      withTimezone: true,
+    })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("leads_public_id_unique").on(
+      table.publicId,
+    ),
+    index("leads_status_idx").on(table.status),
+    index("leads_phone_idx").on(table.phone),
+    index("leads_created_at_idx").on(
+      table.createdAt,
+    ),
+  ],
+);
+
+/**
+ * Conversación iniciada desde el asistente de la landing.
+ *
+ * Puede comenzar anónimamente y asociarse después
+ * con un lead cuando el visitante entregue sus datos.
+ */
+export const conversations = pgTable(
+  "conversations",
+  {
+    id: serial("id").primaryKey(),
+
+    publicId: uuid("public_id")
+      .notNull()
+      .defaultRandom(),
+
+    leadId: integer("lead_id").references(
+      () => leads.id,
+      {
+        onDelete: "set null",
+      },
+    ),
+
+    /**
+     * Canales previstos:
+     * WEB
+     * WHATSAPP
+     * MANUAL
+     */
+    channel: varchar("channel", {
+      length: 30,
+    })
+      .notNull()
+      .default("WEB"),
+
+    /**
+     * Estados previstos:
+     * ABIERTA
+     * ESCALADA
+     * CERRADA
+     */
+    status: varchar("status", {
+      length: 30,
+    })
+      .notNull()
+      .default("ABIERTA"),
+
+    /**
+     * Última intención reconocida:
+     * HORARIO, PRECIOS, ENTREGA, PAGO, PRODUCTO,
+     * ASESOR o DESCONOCIDA.
+     */
+    lastIntent: varchar("last_intent", {
+      length: 80,
+    }),
+
+    requiresHuman: boolean("requires_human")
+      .notNull()
+      .default(false),
+
+    createdAt: timestamp("created_at", {
+      withTimezone: true,
+    })
+      .notNull()
+      .defaultNow(),
+
+    updatedAt: timestamp("updated_at", {
+      withTimezone: true,
+    })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    uniqueIndex(
+      "conversations_public_id_unique",
+    ).on(table.publicId),
+    index("conversations_lead_idx").on(
+      table.leadId,
+    ),
+    index("conversations_status_idx").on(
+      table.status,
+    ),
+    index("conversations_created_at_idx").on(
+      table.createdAt,
+    ),
+  ],
+);
+
+/**
+ * Historial de mensajes.
+ *
+ * Los roles iniciales serán:
+ * USER
+ * ASSISTANT
+ * SYSTEM
+ */
+export const conversationMessages = pgTable(
+  "conversation_messages",
+  {
+    id: serial("id").primaryKey(),
+
+    conversationId: integer(
+      "conversation_id",
+    )
+      .notNull()
+      .references(() => conversations.id, {
+        onDelete: "cascade",
+      }),
+
+    role: varchar("role", {
+      length: 20,
+    }).notNull(),
+
+    content: text("content").notNull(),
+
+    /**
+     * Intención detectada en el mensaje.
+     * Puede ser null en mensajes administrativos.
+     */
+    intent: varchar("intent", {
+      length: 80,
+    }),
+
+    createdAt: timestamp("created_at", {
+      withTimezone: true,
+    })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index(
+      "conversation_messages_conversation_idx",
+    ).on(table.conversationId),
+    index(
+      "conversation_messages_created_at_idx",
+    ).on(table.createdAt),
+  ],
+);
