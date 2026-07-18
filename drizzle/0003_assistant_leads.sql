@@ -51,3 +51,9 @@ CREATE UNIQUE INDEX "leads_public_id_unique" ON "leads" USING btree ("public_id"
 CREATE INDEX "leads_status_idx" ON "leads" USING btree ("status");--> statement-breakpoint
 CREATE INDEX "leads_phone_idx" ON "leads" USING btree ("phone");--> statement-breakpoint
 CREATE INDEX "leads_created_at_idx" ON "leads" USING btree ("created_at");
+--> statement-breakpoint
+ALTER TABLE "leads" ENABLE ROW LEVEL SECURITY;
+--> statement-breakpoint
+ALTER TABLE "conversations" ENABLE ROW LEVEL SECURITY;
+--> statement-breakpoint
+ALTER TABLE "conversation_messages" ENABLE ROW LEVEL SECURITY;
