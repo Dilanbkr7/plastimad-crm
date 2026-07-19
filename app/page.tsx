@@ -212,7 +212,7 @@ export default async function HomePage() {
         className="relative isolate overflow-hidden bg-slate-950"
       >
         <div
-          className="absolute inset-0 bg-cover bg-center opacity-45"
+          className="absolute inset-0 bg-cover bg-center opacity-75"
           style={{
             backgroundImage:
               `url("${LANDING_ASSETS.hero.src}")`,
@@ -432,9 +432,8 @@ export default async function HomePage() {
           </div>
 
           <p className="mt-5 text-xs text-slate-400">
-            Imágenes referenciales temporales. Serán
-            reemplazadas por fotografías oficiales
-            de Plastimad.
+            Mientras otras macetas se deterioran
+            la ECO Maceta dura mas de 10 años resistiendo al sol, lluvia y al paso del tiempo, disfruta mientras 	    ayudas al medio ambiente.
           </p>
         </div>
       </section>
