@@ -2,7 +2,6 @@
 
 import type { FormEvent } from "react";
 import {
-  useEffect,
   useMemo,
   useState,
 } from "react";
@@ -162,8 +161,16 @@ export default function OrderForm({
     [zones, selectedZoneId],
   );
 
-  useEffect(() => {
-    if (selectedZone?.code === "quito-local") {
+  function handleZoneChange(
+    nextZoneId: number,
+  ) {
+    const nextZone = zones.find(
+      (zone) => zone.id === nextZoneId,
+    );
+
+    setSelectedZoneId(nextZoneId);
+
+    if (nextZone?.code === "quito-local") {
       setProvince("Pichincha");
       setCity("Quito");
     } else {
@@ -172,17 +179,13 @@ export default function OrderForm({
     }
 
     if (
-      selectedZone &&
-      !selectedZone.cashOnDeliveryAvailable &&
+      nextZone &&
+      !nextZone.cashOnDeliveryAvailable &&
       paymentMethod === "CONTRAENTREGA"
     ) {
       setPaymentMethod("TRANSFERENCIA");
     }
-  }, [
-    selectedZone?.code,
-    selectedZone?.cashOnDeliveryAvailable,
-    paymentMethod,
-  ]);
+  }
 
   const displayedDeliveryFee =
     selectedZone?.requiresQuote
@@ -531,7 +534,7 @@ export default function OrderForm({
                 className={inputClass}
                 value={selectedZoneId}
                 onChange={(event) =>
-                  setSelectedZoneId(
+                  handleZoneChange(
                     Number(event.target.value),
                   )
                 }

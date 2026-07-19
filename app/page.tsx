@@ -7,6 +7,7 @@ import {
 } from "drizzle-orm";
 import { connection } from "next/server";
 
+import AssistantChat from "@/components/landing/AssistantChat";
 import OrderForm from "@/components/landing/OrderForm";
 import { db } from "@/lib/db";
 import {
@@ -502,6 +503,11 @@ export default async function HomePage() {
           </div>
         </div>
       </footer>
+      <AssistantChat
+        businessName={settings.businessName}
+        whatsappNumber={settings.whatsappNumber}
+      />
+
     </main>
   );
 }
