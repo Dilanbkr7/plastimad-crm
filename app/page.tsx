@@ -1,6 +1,7 @@
 import type { CSSProperties } from "react";
 
 import Image from "next/image";
+import { LANDING_ASSETS } from "@/lib/landing/assets";
 import {
   and,
   asc,
@@ -214,7 +215,7 @@ export default async function HomePage() {
           className="absolute inset-0 bg-cover bg-center opacity-45"
           style={{
             backgroundImage:
-              "url('https://images.unsplash.com/photo-1485955900006-10f4d324d411?auto=format&fit=crop&w=1800&q=85')",
+              `url("${LANDING_ASSETS.hero.src}")`,
           }}
         />
 
@@ -383,7 +384,7 @@ export default async function HomePage() {
               className="min-h-[520px] rounded-3xl bg-cover bg-center"
               style={{
                 backgroundImage:
-                  "url('https://images.unsplash.com/photo-1416879595882-3373a0480b5b?auto=format&fit=crop&w=1400&q=85')",
+                  `url("${LANDING_ASSETS.productMain.src}")`,
               }}
             />
 
@@ -392,7 +393,7 @@ export default async function HomePage() {
                 className="min-h-60 rounded-3xl bg-cover bg-center"
                 style={{
                   backgroundImage:
-                    "url('https://images.unsplash.com/photo-1497250681960-ef046c08a56e?auto=format&fit=crop&w=1000&q=85')",
+                    `url("${LANDING_ASSETS.productSecondary.src}")`,
                 }}
               />
 
