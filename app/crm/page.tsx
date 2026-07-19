@@ -32,7 +32,8 @@ const statusLabels: Record<string, string> = {
   CONFIRMADO: "Confirmado",
   PROGRAMADO: "Programado",
   EN_RUTA: "En ruta",
-  ENTREGADO_COBRADO: "Entregado y cobrado",
+  ENTREGADO_COBRADO:
+    "Entregado y cobrado",
   REPROGRAMAR: "Reprogramar",
   NOVEDAD: "Novedad",
   CANCELADO: "Cancelado",
@@ -49,6 +50,7 @@ function formatDate(value: Date | string) {
   return new Intl.DateTimeFormat("es-EC", {
     dateStyle: "medium",
     timeStyle: "short",
+    timeZone: "America/Guayaquil",
   }).format(new Date(value));
 }
 
@@ -78,29 +80,40 @@ export default async function CRMPage() {
     .from(orders)
     .innerJoin(
       customers,
-      eq(orders.customerId, customers.id),
+      eq(
+        orders.customerId,
+        customers.id,
+      ),
     )
-    .orderBy(desc(orders.createdAt));
+    .orderBy(
+      desc(orders.createdAt),
+    )
+    .limit(200);
 
   const totalOrders = orderRows.length;
 
-  const receivedOrders = orderRows.filter(
-    (order) =>
-      order.status === "RECIBIDO" ||
-      order.status === "PEDIDO_RECIBIDO",
-  ).length;
+  const receivedOrders =
+    orderRows.filter(
+      (order) =>
+        order.status === "RECIBIDO" ||
+        order.status ===
+          "PEDIDO_RECIBIDO",
+    ).length;
 
-  const pendingOrders = orderRows.filter(
-    (order) =>
-      order.status !== "ENTREGADO_COBRADO" &&
-      order.status !== "CANCELADO",
-  ).length;
+  const pendingOrders =
+    orderRows.filter(
+      (order) =>
+        order.status !==
+          "ENTREGADO_COBRADO" &&
+        order.status !== "CANCELADO",
+    ).length;
 
-  const totalOrderValue = orderRows.reduce(
-    (accumulator, order) =>
-      accumulator + order.total,
-    0,
-  );
+  const totalOrderValue =
+    orderRows.reduce(
+      (accumulator, order) =>
+        accumulator + order.total,
+      0,
+    );
 
   return (
     <main className="min-h-screen bg-slate-100 px-4 py-6 md:px-8">
@@ -116,8 +129,8 @@ export default async function CRMPage() {
             </h1>
 
             <p className="mt-2 text-sm text-slate-600">
-              Seguimiento centralizado de clientes,
-              pedidos y entregas.
+              Seguimiento centralizado de
+              clientes, pedidos y entregas.
             </p>
           </div>
 
@@ -130,11 +143,20 @@ export default async function CRMPage() {
             </Link>
 
             <Link
-              href="/crm"
-              className="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-800"
+              href="/crm/leads"
+              className="rounded-lg border border-emerald-700 bg-white px-4 py-2 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-50"
             >
-              Actualizar pedidos
+              Ver leads
             </Link>
+
+            <form action="/crm" method="get">
+              <button
+                type="submit"
+                className="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-800"
+              >
+                Actualizar lista
+              </button>
+            </form>
           </div>
         </header>
 
@@ -175,7 +197,9 @@ export default async function CRMPage() {
             </p>
 
             <p className="mt-3 text-3xl font-bold text-emerald-700">
-              {formatMoney(totalOrderValue)}
+              {formatMoney(
+                totalOrderValue,
+              )}
             </p>
           </article>
         </section>
@@ -187,8 +211,8 @@ export default async function CRMPage() {
             </h2>
 
             <p className="mt-1 text-sm text-slate-500">
-              Los pedidos más recientes aparecen
-              primero.
+              Pulsa Abrir para revisar y
+              actualizar el estado del pedido.
             </p>
           </div>
 
@@ -203,9 +227,9 @@ export default async function CRMPage() {
               </h3>
 
               <p className="mx-auto mt-2 max-w-md text-sm text-slate-500">
-                Realiza un pedido de prueba mediante
-                la API. Cuando se registre, aparecerá
-                automáticamente en este panel.
+                Registra un pedido desde la
+                landing. Cuando se guarde,
+                aparecerá automáticamente aquí.
               </p>
             </div>
           ) : (
@@ -216,88 +240,118 @@ export default async function CRMPage() {
                     <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
                       Pedido
                     </th>
+
                     <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
                       Cliente
                     </th>
+
                     <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
                       Producto
                     </th>
+
                     <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
                       Dirección
                     </th>
+
                     <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
                       Estado
                     </th>
+
                     <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">
                       Total
                     </th>
+
                     <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
                       Fecha
+                    </th>
+
+                    <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">
+                      Acción
                     </th>
                   </tr>
                 </thead>
 
                 <tbody className="divide-y divide-slate-100 bg-white">
-                  {orderRows.map((order) => (
-                    <tr
-                      key={order.id}
-                      className="transition hover:bg-slate-50"
-                    >
-                      <td className="whitespace-nowrap px-5 py-4">
-                        <span className="font-bold text-slate-900">
-                          #{order.id}
-                        </span>
-                      </td>
+                  {orderRows.map(
+                    (order) => (
+                      <tr
+                        key={order.id}
+                        className="transition hover:bg-slate-50"
+                      >
+                        <td className="whitespace-nowrap px-5 py-4">
+                          <Link
+                            href={`/crm/orders/${order.id}`}
+                            className="font-bold text-emerald-700 hover:underline"
+                          >
+                            #{order.id}
+                          </Link>
+                        </td>
 
-                      <td className="whitespace-nowrap px-5 py-4">
-                        <p className="font-semibold text-slate-900">
-                          {order.customerName}
-                        </p>
+                        <td className="whitespace-nowrap px-5 py-4">
+                          <p className="font-semibold text-slate-900">
+                            {
+                              order.customerName
+                            }
+                          </p>
 
-                        <p className="mt-1 text-sm text-slate-500">
-                          {order.phone}
-                        </p>
-                      </td>
+                          <p className="mt-1 text-sm text-slate-500">
+                            {order.phone}
+                          </p>
+                        </td>
 
-                      <td className="px-5 py-4">
-                        <p className="font-medium text-slate-900">
-                          {order.product}
-                        </p>
+                        <td className="px-5 py-4">
+                          <p className="font-medium text-slate-900">
+                            {order.product}
+                          </p>
 
-                        <p className="mt-1 text-sm text-slate-500">
-                          Cantidad: {order.quantity}
-                        </p>
-                      </td>
+                          <p className="mt-1 text-sm text-slate-500">
+                            Cantidad:{" "}
+                            {order.quantity}
+                          </p>
+                        </td>
 
-                      <td className="max-w-xs px-5 py-4">
-                        <p className="line-clamp-2 text-sm text-slate-700">
-                          {order.address}
-                        </p>
-                      </td>
+                        <td className="max-w-xs px-5 py-4">
+                          <p className="line-clamp-2 text-sm text-slate-700">
+                            {order.address}
+                          </p>
+                        </td>
 
-                      <td className="whitespace-nowrap px-5 py-4">
-                        <span
-                          className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${getStatusStyle(
-                            order.status,
-                          )}`}
-                        >
-                          {statusLabels[
-                            order.status
-                          ] ?? order.status}
-                        </span>
-                      </td>
+                        <td className="whitespace-nowrap px-5 py-4">
+                          <span
+                            className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${getStatusStyle(
+                              order.status,
+                            )}`}
+                          >
+                            {statusLabels[
+                              order.status
+                            ] ??
+                              order.status}
+                          </span>
+                        </td>
 
-                      <td className="whitespace-nowrap px-5 py-4 text-right font-bold text-slate-900">
-                        {formatMoney(order.total)}
-                      </td>
+                        <td className="whitespace-nowrap px-5 py-4 text-right font-bold text-slate-900">
+                          {formatMoney(
+                            order.total,
+                          )}
+                        </td>
 
-                      <td className="whitespace-nowrap px-5 py-4 text-sm text-slate-500">
-                        {formatDate(
-                          order.createdAt,
-                        )}
-                      </td>
-                    </tr>
-                  ))}
+                        <td className="whitespace-nowrap px-5 py-4 text-sm text-slate-500">
+                          {formatDate(
+                            order.createdAt,
+                          )}
+                        </td>
+
+                        <td className="whitespace-nowrap px-5 py-4 text-right">
+                          <Link
+                            href={`/crm/orders/${order.id}`}
+                            className="inline-flex rounded-lg bg-slate-950 px-4 py-2 text-sm font-bold text-white transition hover:bg-emerald-800"
+                          >
+                            Abrir
+                          </Link>
+                        </td>
+                      </tr>
+                    ),
+                  )}
                 </tbody>
               </table>
             </div>
@@ -305,8 +359,8 @@ export default async function CRMPage() {
         </section>
 
         <footer className="mt-6 text-center text-xs text-slate-500">
-          Plastimad CRM · Datos almacenados en
-          PostgreSQL
+          Plastimad CRM · Datos almacenados
+          en PostgreSQL
         </footer>
       </div>
     </main>

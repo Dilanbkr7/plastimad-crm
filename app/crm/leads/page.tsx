@@ -4,8 +4,8 @@ import {
   desc,
   eq,
   ilike,
+  inArray,
   or,
-  sql,
 } from "drizzle-orm";
 import { connection } from "next/server";
 
@@ -41,6 +41,7 @@ function formatDate(
     {
       dateStyle: "medium",
       timeStyle: "short",
+      timeZone: "America/Guayaquil",
     },
   ).format(new Date(value));
 }
@@ -117,6 +118,10 @@ export default async function LeadsPage({
     );
   }
 
+  /**
+   * Consultas simples y limitadas para evitar que
+   * el pooler cancele la página por statement_timeout.
+   */
   const leadRows = await db
     .select({
       id: leads.id,
@@ -134,27 +139,85 @@ export default async function LeadsPage({
         leads.consentAccepted,
       createdAt: leads.createdAt,
       updatedAt: leads.updatedAt,
-      conversationCount: sql<number>`
-        (
-          select count(*)::int
-          from ${conversations}
-          where ${conversations.leadId} = ${leads.id}
-        )
-      `,
-      lastConversationAt: sql<Date | null>`
-        (
-          select max(${conversations.updatedAt})
-          from ${conversations}
-          where ${conversations.leadId} = ${leads.id}
-        )
-      `,
     })
     .from(leads)
-    .where(and(...conditions))
+    .where(
+      conditions.length > 0
+        ? and(...conditions)
+        : undefined,
+    )
     .orderBy(
       desc(leads.requiresHuman),
       desc(leads.createdAt),
-    );
+    )
+    .limit(200);
+
+  const leadIds = leadRows.map(
+    (lead) => lead.id,
+  );
+
+  const conversationRows =
+    leadIds.length > 0
+      ? await db
+          .select({
+            leadId:
+              conversations.leadId,
+            updatedAt:
+              conversations.updatedAt,
+          })
+          .from(conversations)
+          .where(
+            inArray(
+              conversations.leadId,
+              leadIds,
+            ),
+          )
+          .orderBy(
+            desc(
+              conversations.updatedAt,
+            ),
+          )
+      : [];
+
+  const conversationStats =
+    new Map<
+      number,
+      {
+        count: number;
+        lastAt: Date | null;
+      }
+    >();
+
+  for (
+    const conversation of
+      conversationRows
+  ) {
+    if (
+      conversation.leadId === null
+    ) {
+      continue;
+    }
+
+    const current =
+      conversationStats.get(
+        conversation.leadId,
+      );
+
+    if (!current) {
+      conversationStats.set(
+        conversation.leadId,
+        {
+          count: 1,
+          lastAt:
+            conversation.updatedAt,
+        },
+      );
+
+      continue;
+    }
+
+    current.count += 1;
+  }
 
   const allLeads = await db
     .select({
@@ -162,7 +225,8 @@ export default async function LeadsPage({
       requiresHuman:
         leads.requiresHuman,
     })
-    .from(leads);
+    .from(leads)
+    .limit(5000);
 
   const totalLeads = allLeads.length;
 
@@ -376,6 +440,11 @@ export default async function LeadsPage({
                         lead.status,
                       );
 
+                    const stats =
+                      conversationStats.get(
+                        lead.id,
+                      );
+
                     return (
                       <tr
                         key={lead.id}
@@ -446,14 +515,12 @@ export default async function LeadsPage({
                         </td>
 
                         <td className="whitespace-nowrap px-5 py-4 text-sm text-slate-600">
-                          {
-                            lead.conversationCount
-                          }
+                          {stats?.count ?? 0}
                         </td>
 
                         <td className="whitespace-nowrap px-5 py-4 text-sm text-slate-500">
                           {formatDate(
-                            lead.lastConversationAt ||
+                            stats?.lastAt ||
                               lead.updatedAt,
                           )}
                         </td>
