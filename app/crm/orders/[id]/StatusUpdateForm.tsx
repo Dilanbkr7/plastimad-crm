@@ -1,11 +1,7 @@
 "use client";
 
 import type { FormEvent } from "react";
-import {
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 import {
@@ -52,37 +48,21 @@ export default function StatusUpdateForm({
   const [errorMessage, setErrorMessage] =
     useState("");
 
-  /**
-   * Cuando el servidor actualiza currentStatus,
-   * React puede conservar el estado interno anterior.
-   *
-   * Este efecto selecciona automáticamente la primera
-   * transición válida del nuevo estado.
-   *
-   * Ejemplo:
-   * RECIBIDO → CONFIRMADO
-   *
-   * Después del cambio:
-   * currentStatus = CONFIRMADO
-   * selectedStatus = PROGRAMADO
-   */
-  useEffect(() => {
-    setSelectedStatus(firstAvailableStatus);
-    setNote("");
-    setErrorMessage("");
-  }, [
-    currentStatus,
-    firstAvailableStatus,
-  ]);
+  const selectedStatusIsAvailable =
+    selectedStatus !== "" &&
+    (
+      availableStatuses as readonly OrderStatus[]
+    ).includes(selectedStatus);
 
-  const noteRequired = useMemo(() => {
-    return (
-      selectedStatus !== "" &&
-      statusesRequiringNote.has(
-        selectedStatus,
-      )
+  const effectiveSelectedStatus =
+    selectedStatusIsAvailable
+      ? selectedStatus
+      : firstAvailableStatus;
+
+  const noteRequired =
+    statusesRequiringNote.has(
+      effectiveSelectedStatus,
     );
-  }, [selectedStatus]);
 
   async function handleSubmit(
     event: FormEvent<HTMLFormElement>,
@@ -92,23 +72,19 @@ export default function StatusUpdateForm({
     setSuccessMessage("");
     setErrorMessage("");
 
-    if (!selectedStatus) {
+    if (!effectiveSelectedStatus) {
       setErrorMessage(
         "Selecciona el siguiente estado.",
       );
-
       return;
     }
 
-    /**
-     * Protección adicional contra estados
-     * conservados accidentalmente por React.
-     */
-    if (selectedStatus === currentStatus) {
+    if (
+      effectiveSelectedStatus === currentStatus
+    ) {
       setErrorMessage(
         "Selecciona un estado diferente al estado actual.",
       );
-
       return;
     }
 
@@ -119,7 +95,6 @@ export default function StatusUpdateForm({
       setErrorMessage(
         "Debes escribir una observación para este estado.",
       );
-
       return;
     }
 
@@ -130,13 +105,11 @@ export default function StatusUpdateForm({
         `/api/admin/orders/${orderId}/status`,
         {
           method: "PATCH",
-
           headers: {
             "Content-Type": "application/json",
           },
-
           body: JSON.stringify({
-            status: selectedStatus,
+            status: effectiveSelectedStatus,
             note,
           }),
         },
@@ -154,13 +127,8 @@ export default function StatusUpdateForm({
 
       setSuccessMessage(payload.message);
       setNote("");
+      setSelectedStatus("");
 
-      /**
-       * Solicita nuevamente los datos del servidor.
-       *
-       * Al cambiar currentStatus, el useEffect anterior
-       * prepara automáticamente la siguiente transición.
-       */
       router.refresh();
     } catch (error) {
       setErrorMessage(
@@ -221,7 +189,7 @@ export default function StatusUpdateForm({
 
         <select
           className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-950 outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
-          value={selectedStatus}
+          value={effectiveSelectedStatus}
           onChange={(event) => {
             setSelectedStatus(
               event.target.value as OrderStatus,
@@ -287,8 +255,9 @@ export default function StatusUpdateForm({
         type="submit"
         disabled={
           loading ||
-          !selectedStatus ||
-          selectedStatus === currentStatus
+          !effectiveSelectedStatus ||
+          effectiveSelectedStatus ===
+            currentStatus
         }
         className="mt-5 w-full rounded-xl bg-emerald-700 px-5 py-3 font-black text-white transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-60"
       >

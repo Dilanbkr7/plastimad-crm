@@ -1,5 +1,6 @@
 import type { CSSProperties } from "react";
 
+import Image from "next/image";
 import {
   and,
   asc,
@@ -162,9 +163,13 @@ export default async function HomePage() {
             href="#inicio"
             className="flex items-center gap-3"
           >
-            <img
+            <Image
               src={logoSource}
               alt={settings.businessName}
+              width={240}
+              height={80}
+              priority
+              unoptimized
               className="h-14 w-auto max-w-48 object-contain"
             />
           </a>
@@ -472,9 +477,12 @@ export default async function HomePage() {
       <footer className="border-t border-slate-200 bg-slate-50">
         <div className="mx-auto grid max-w-7xl gap-8 px-5 py-10 md:grid-cols-2 md:items-center lg:px-8">
           <div>
-            <img
+            <Image
               src={logoSource}
               alt={settings.businessName}
+              width={280}
+              height={96}
+              unoptimized
               className="h-16 w-auto max-w-56 object-contain"
             />
 
@@ -503,11 +511,13 @@ export default async function HomePage() {
           </div>
         </div>
       </footer>
+
       <AssistantChat
         businessName={settings.businessName}
-        whatsappNumber={settings.whatsappNumber}
+        whatsappNumber={
+          settings.whatsappNumber
+        }
       />
-
     </main>
   );
 }

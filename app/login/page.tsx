@@ -1,3 +1,5 @@
+import Image from "next/image";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
@@ -18,10 +20,6 @@ export default async function LoginPage({
   const { data } =
     await supabase.auth.getClaims();
 
-  /**
-   * Un usuario autenticado no necesita
-   * volver a visualizar el login.
-   */
   if (data?.claims?.sub) {
     redirect("/crm");
   }
@@ -43,16 +41,19 @@ export default async function LoginPage({
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(16,185,129,0.25),_transparent_35%),radial-gradient(circle_at_bottom_right,_rgba(166,106,33,0.20),_transparent_35%)]" />
 
       <section className="relative w-full max-w-md rounded-3xl border border-white/10 bg-white p-7 shadow-2xl sm:p-9">
-        <a
+        <Link
           href="/"
           className="inline-flex items-center text-sm font-bold text-emerald-700 hover:underline"
         >
           ← Volver a la landing
-        </a>
+        </Link>
 
-        <img
+        <Image
           src="/plastimad/logo.png"
           alt="Plastimad"
+          width={260}
+          height={96}
+          priority
           className="mx-auto mt-6 h-24 w-auto max-w-full object-contain"
         />
 
@@ -66,14 +67,16 @@ export default async function LoginPage({
           </h1>
 
           <p className="mt-3 text-sm leading-6 text-slate-500">
-            Ingresa con una cuenta administrativa autorizada.
+            Ingresa con una cuenta administrativa
+            autorizada.
           </p>
         </div>
 
         <LoginForm nextPath={nextPath} />
 
         <p className="mt-6 text-center text-xs leading-5 text-slate-400">
-          El acceso está restringido al personal autorizado.
+          El acceso está restringido al personal
+          autorizado.
         </p>
       </section>
     </main>
