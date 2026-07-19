@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 
+import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { logout } from "@/app/login/actions";
@@ -11,12 +12,6 @@ type CRMLayoutProps = {
 
 /**
  * Protege todas las rutas dentro de /crm.
- *
- * Para el MVP, cualquier usuario autenticado
- * puede acceder porque el registro público está
- * deshabilitado y solo existe el administrador.
- *
- * Más adelante agregaremos roles.
  */
 export default async function CRMLayout({
   children,
@@ -43,28 +38,54 @@ export default async function CRMLayout({
 
   return (
     <div className="min-h-screen bg-slate-100">
-      <div className="border-b border-slate-800 bg-slate-950 text-white">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 md:px-8">
+      <header className="sticky top-0 z-50 border-b border-slate-800 bg-slate-950 text-white shadow-lg">
+        <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-4 md:flex-row md:items-center md:justify-between md:px-8">
           <div>
-            <p className="text-xs font-black uppercase tracking-[0.18em] text-emerald-400">
+            <Link
+              href="/crm"
+              className="text-lg font-black tracking-tight hover:text-emerald-300"
+            >
               Plastimad CRM
-            </p>
+            </Link>
 
             <p className="mt-1 text-xs text-slate-400">
               Sesión activa: {email}
             </p>
           </div>
 
-          <form action={logout}>
-            <button
-              type="submit"
-              className="rounded-lg border border-white/15 bg-white/10 px-4 py-2 text-sm font-bold transition hover:bg-white/20"
+          <nav className="flex flex-wrap items-center gap-2">
+            <Link
+              href="/crm"
+              className="rounded-lg px-3 py-2 text-sm font-bold text-slate-200 transition hover:bg-white/10 hover:text-white"
             >
-              Cerrar sesión
-            </button>
-          </form>
+              Pedidos
+            </Link>
+
+            <Link
+              href="/crm/leads"
+              className="rounded-lg px-3 py-2 text-sm font-bold text-slate-200 transition hover:bg-white/10 hover:text-white"
+            >
+              Leads
+            </Link>
+
+            <Link
+              href="/"
+              className="rounded-lg px-3 py-2 text-sm font-bold text-slate-200 transition hover:bg-white/10 hover:text-white"
+            >
+              Ver landing
+            </Link>
+
+            <form action={logout}>
+              <button
+                type="submit"
+                className="rounded-lg bg-rose-600 px-3 py-2 text-sm font-black text-white transition hover:bg-rose-700"
+              >
+                Cerrar sesión
+              </button>
+            </form>
+          </nav>
         </div>
-      </div>
+      </header>
 
       {children}
     </div>
