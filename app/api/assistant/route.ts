@@ -523,12 +523,10 @@ function buildBaseReply(
       ].join("\n");
 
     case "HORARIO":
-      return [
-        "El horario comercial todavía no está configurado en la base de datos, por lo que no voy a inventar una hora de atención.",
-        context.whatsappNumber
-          ? "Puedes solicitar confirmación por WhatsApp o pedirme que escale la conversación a un asesor."
-          : "Puedes pedirme que escale la conversación a un asesor.",
-      ].join("\n");
+  return [
+    "Nuestro horario de atención es de lunes a sábado, de 08:00 a 17:00.",
+    "Fuera de ese horario puedes dejar tu consulta y un asesor te responderá en la siguiente jornada laboral.",
+  ].join("\n");
 
     case "ASESOR":
       return "He marcado esta conversación para atención humana. Comparte tus datos únicamente después de aceptar su almacenamiento, y el equipo comercial podrá continuar el contacto.";
