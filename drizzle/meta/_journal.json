@@ -8,6 +8,27 @@
       "when": 1781909181473,
       "tag": "0000_init_crm",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1783389887190,
+      "tag": "0001_red_blackheart",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1783406497962,
+      "tag": "0002_moaning_speed_demon",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1784371155506,
+      "tag": "0003_assistant_leads",
+      "breakpoints": true
     }
   ]
 }

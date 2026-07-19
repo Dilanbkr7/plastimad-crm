@@ -1,47 +1,31 @@
+import Link from "next/link";
+import { connection } from "next/server";
+import { desc, eq } from "drizzle-orm";
+
 import { db } from "@/lib/db";
 import { customers, orders } from "@/lib/schema";
-import { desc, eq } from "drizzle-orm";
-import { connection } from "next/server";
 
-/**
- * Colores visuales para cada etapa del pipeline.
- *
- * El objeto puede ampliarse cuando agreguemos
- * nuevos estados al proceso de entregas.
- */
 const statusStyles: Record<string, string> = {
   RECIBIDO:
     "border-blue-200 bg-blue-50 text-blue-700",
-
   PEDIDO_RECIBIDO:
     "border-blue-200 bg-blue-50 text-blue-700",
-
   CONFIRMADO:
     "border-cyan-200 bg-cyan-50 text-cyan-700",
-
   PROGRAMADO:
     "border-amber-200 bg-amber-50 text-amber-700",
-
   EN_RUTA:
     "border-violet-200 bg-violet-50 text-violet-700",
-
   ENTREGADO_COBRADO:
     "border-emerald-200 bg-emerald-50 text-emerald-700",
-
   REPROGRAMAR:
     "border-orange-200 bg-orange-50 text-orange-700",
-
   NOVEDAD:
     "border-rose-200 bg-rose-50 text-rose-700",
-
   CANCELADO:
     "border-slate-300 bg-slate-100 text-slate-600",
 };
 
-/**
- * Convierte los estados técnicos en textos
- * más claros para los usuarios del CRM.
- */
 const statusLabels: Record<string, string> = {
   RECIBIDO: "Pedido recibido",
   PEDIDO_RECIBIDO: "Pedido recibido",
@@ -54,12 +38,6 @@ const statusLabels: Record<string, string> = {
   CANCELADO: "Cancelado",
 };
 
-/**
- * Convierte centavos a dólares.
- *
- * Ejemplo:
- * 2000 → USD 20,00
- */
 function formatMoney(cents: number) {
   return new Intl.NumberFormat("es-EC", {
     style: "currency",
@@ -67,10 +45,6 @@ function formatMoney(cents: number) {
   }).format(cents / 100);
 }
 
-/**
- * Presenta la fecha de PostgreSQL
- * en un formato entendible para Ecuador.
- */
 function formatDate(value: Date | string) {
   return new Intl.DateTimeFormat("es-EC", {
     dateStyle: "medium",
@@ -78,10 +52,6 @@ function formatDate(value: Date | string) {
   }).format(new Date(value));
 }
 
-/**
- * Devuelve el estilo correspondiente
- * al estado actual del pedido.
- */
 function getStatusStyle(status: string) {
   return (
     statusStyles[status] ??
@@ -89,30 +59,9 @@ function getStatusStyle(status: string) {
   );
 }
 
-/**
- * Página principal del CRM.
- *
- * Se ejecuta en el servidor y consulta directamente
- * las tablas customers y orders.
- */
 export default async function CRMPage() {
-  /**
-   * Indica a Next.js que esta página debe
-   * renderizarse al recibir cada solicitud.
-   *
-   * Así evitamos que el listado de pedidos quede
-   * congelado durante la compilación.
-   */
   await connection();
 
-  /**
-   * Une orders con customers.
-   *
-   * Esto permite mostrar en una misma fila:
-   * - datos del pedido;
-   * - nombre del cliente;
-   * - teléfono del cliente.
-   */
   const orderRows = await db
     .select({
       id: orders.id,
@@ -133,9 +82,6 @@ export default async function CRMPage() {
     )
     .orderBy(desc(orders.createdAt));
 
-  /**
-   * Métricas iniciales del panel.
-   */
   const totalOrders = orderRows.length;
 
   const receivedOrders = orderRows.filter(
@@ -151,14 +97,14 @@ export default async function CRMPage() {
   ).length;
 
   const totalOrderValue = orderRows.reduce(
-    (accumulator, order) => accumulator + order.total,
+    (accumulator, order) =>
+      accumulator + order.total,
     0,
   );
 
   return (
     <main className="min-h-screen bg-slate-100 px-4 py-6 md:px-8">
       <div className="mx-auto max-w-7xl">
-        {/* Encabezado */}
         <header className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
             <p className="mb-1 text-sm font-semibold uppercase tracking-[0.18em] text-emerald-700">
@@ -170,29 +116,28 @@ export default async function CRMPage() {
             </h1>
 
             <p className="mt-2 text-sm text-slate-600">
-              Seguimiento centralizado de clientes, pedidos y
-              entregas.
+              Seguimiento centralizado de clientes,
+              pedidos y entregas.
             </p>
           </div>
 
           <div className="flex flex-wrap gap-3">
-            <a
+            <Link
               href="/"
               className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
             >
               Ver landing
-            </a>
+            </Link>
 
-            <a
+            <Link
               href="/crm"
               className="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-800"
             >
               Actualizar pedidos
-            </a>
+            </Link>
           </div>
         </header>
 
-        {/* Métricas */}
         <section className="mb-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
             <p className="text-sm font-medium text-slate-500">
@@ -235,7 +180,6 @@ export default async function CRMPage() {
           </article>
         </section>
 
-        {/* Tabla de pedidos */}
         <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
           <div className="border-b border-slate-200 px-5 py-4">
             <h2 className="text-lg font-bold text-slate-950">
@@ -243,7 +187,8 @@ export default async function CRMPage() {
             </h2>
 
             <p className="mt-1 text-sm text-slate-500">
-              Los pedidos más recientes aparecen primero.
+              Los pedidos más recientes aparecen
+              primero.
             </p>
           </div>
 
@@ -258,9 +203,9 @@ export default async function CRMPage() {
               </h3>
 
               <p className="mx-auto mt-2 max-w-md text-sm text-slate-500">
-                Realiza un pedido de prueba mediante la API.
-                Cuando se registre, aparecerá automáticamente
-                en este panel.
+                Realiza un pedido de prueba mediante
+                la API. Cuando se registre, aparecerá
+                automáticamente en este panel.
               </p>
             </div>
           ) : (
@@ -271,27 +216,21 @@ export default async function CRMPage() {
                     <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
                       Pedido
                     </th>
-
                     <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
                       Cliente
                     </th>
-
                     <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
                       Producto
                     </th>
-
                     <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
                       Dirección
                     </th>
-
                     <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
                       Estado
                     </th>
-
                     <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">
                       Total
                     </th>
-
                     <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
                       Fecha
                     </th>
@@ -342,8 +281,9 @@ export default async function CRMPage() {
                             order.status,
                           )}`}
                         >
-                          {statusLabels[order.status] ??
-                            order.status}
+                          {statusLabels[
+                            order.status
+                          ] ?? order.status}
                         </span>
                       </td>
 
@@ -352,7 +292,9 @@ export default async function CRMPage() {
                       </td>
 
                       <td className="whitespace-nowrap px-5 py-4 text-sm text-slate-500">
-                        {formatDate(order.createdAt)}
+                        {formatDate(
+                          order.createdAt,
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -363,7 +305,8 @@ export default async function CRMPage() {
         </section>
 
         <footer className="mt-6 text-center text-xs text-slate-500">
-          Plastimad CRM · Datos almacenados en PostgreSQL
+          Plastimad CRM · Datos almacenados en
+          PostgreSQL
         </footer>
       </div>
     </main>
