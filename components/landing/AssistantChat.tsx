@@ -127,10 +127,11 @@ export default function AssistantChat({
   const [messages, setMessages] = useState<
     ChatMessage[]
   >([
-    createMessage(
-      "assistant",
-      `Soy el asistente comercial de ${businessName}. Puedo ayudarte con productos, precios, entregas, pagos o comunicarte con un asesor.`,
-    ),
+    {
+      id: "assistant-welcome",
+      role: "assistant",
+      content: `Soy el asistente comercial de ${businessName}. Puedo ayudarte con productos, precios, entregas, pagos o comunicarte con un asesor.`,
+    },
   ]);
   const [messageInput, setMessageInput] =
     useState("");
