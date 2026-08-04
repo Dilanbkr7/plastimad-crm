@@ -12,6 +12,7 @@ import { connection } from "next/server";
 import AssistantChat from "@/components/landing/AssistantChat";
 import OrderForm from "@/components/landing/OrderForm";
 import { db } from "@/lib/db";
+import { createWhatsAppUrl } from "@/lib/whatsapp";
 import {
   businessSettings,
   deliveryZones,
@@ -254,7 +255,7 @@ export default async function HomePage() {
               </a>
 
               <a
-                href={`https://wa.me/${settings.whatsappNumber}`}
+                href={createWhatsAppUrl(settings.whatsappNumber)}
                 target="_blank"
                 rel="noreferrer"
                 className="rounded-xl border border-white/30 bg-white/10 px-7 py-4 text-center text-base font-black text-white backdrop-blur transition hover:bg-white/20"
@@ -497,7 +498,7 @@ export default async function HomePage() {
             </p>
 
             <a
-              href={`https://wa.me/${settings.whatsappNumber}`}
+              href={createWhatsAppUrl(settings.whatsappNumber)}
               className="mt-2 inline-block text-[var(--brand-primary)] hover:underline"
             >
               {settings.phone}

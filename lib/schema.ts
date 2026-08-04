@@ -56,7 +56,7 @@ export const businessSettings = pgTable(
      * Número internacional sin signos ni espacios.
      *
      * Ejemplo:
-     * 593999936165
+     * 593995152308
      */
     whatsappNumber: varchar("whatsapp_number", {
       length: 20,

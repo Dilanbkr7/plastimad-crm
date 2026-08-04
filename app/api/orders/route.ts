@@ -74,9 +74,9 @@ function readText(
  * Normaliza números de Ecuador.
  *
  * Ejemplos:
- * +593 999 936 165 → 0999936165
- * 593999936165     → 0999936165
- * 0999936165       → 0999936165
+ * +593 99 515 2308 → 0995152308
+ * 593995152308      → 0995152308
+ * 0995152308        → 0995152308
  */
 function normalizePhone(value: unknown): string {
   const digits = readText(value, 30).replace(/\D/g, "");

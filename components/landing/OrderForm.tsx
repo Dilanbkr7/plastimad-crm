@@ -6,6 +6,8 @@ import {
   useState,
 } from "react";
 
+import { createWhatsAppUrl } from "@/lib/whatsapp";
+
 type LandingOffer = {
   id: number;
   name: string;
@@ -321,14 +323,16 @@ export default function OrderForm({
         "Deseo continuar con la coordinación de mi entrega.",
       ].join("\n");
 
-      const cleanWhatsappNumber =
-        whatsappNumber.replace(/\D/g, "");
+      const whatsappUrl = createWhatsAppUrl(
+        whatsappNumber,
+        whatsappMessage,
+      );
 
-      const whatsappUrl =
-        `https://wa.me/${cleanWhatsappNumber}` +
-        `?text=${encodeURIComponent(
-          whatsappMessage,
-        )}`;
+      if (!whatsappUrl) {
+        throw new Error(
+          "El número empresarial de WhatsApp no está configurado correctamente.",
+        );
+      }
 
       window.location.assign(whatsappUrl);
     } catch (error) {

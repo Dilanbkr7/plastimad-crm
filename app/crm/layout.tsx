@@ -69,6 +69,13 @@ export default async function CRMLayout({
             </Link>
 
             <Link
+              href="/crm/settings"
+              className="rounded-lg px-3 py-2 text-sm font-bold text-slate-200 transition hover:bg-white/10 hover:text-white"
+            >
+              Configuración
+            </Link>
+
+            <Link
               href="/"
               className="rounded-lg px-3 py-2 text-sm font-bold text-slate-200 transition hover:bg-white/10 hover:text-white"
             >
