@@ -23,6 +23,7 @@ import {
   leadStatusStyles,
   type LeadStatus,
 } from "@/lib/leads/status";
+import { createWhatsAppUrl } from "@/lib/whatsapp";
 
 import LeadUpdateForm from "./LeadUpdateForm";
 
@@ -58,23 +59,6 @@ function readableValue(
   value: string | null,
 ) {
   return value?.trim() || "No registrado";
-}
-
-function toWhatsappNumber(
-  phone: string,
-) {
-  const digits =
-    phone.replace(/\D/g, "");
-
-  if (digits.startsWith("593")) {
-    return digits;
-  }
-
-  if (digits.startsWith("0")) {
-    return `593${digits.slice(1)}`;
-  }
-
-  return digits;
 }
 
 function getRoleLabel(role: string) {
@@ -229,12 +213,9 @@ export default async function LeadDetailPage({
       ? lead.status
       : "NUEVO";
 
-  const whatsappNumber =
-    lead.phone
-      ? toWhatsappNumber(
-          lead.phone,
-        )
-      : "";
+  const whatsappUrl = lead.phone
+    ? createWhatsAppUrl(lead.phone)
+    : "";
 
   return (
     <main className="min-h-screen bg-slate-100 px-4 py-6 md:px-8">
@@ -282,9 +263,9 @@ export default async function LeadDetailPage({
           </div>
 
           <div className="flex flex-wrap gap-3">
-            {whatsappNumber && (
+            {whatsappUrl && (
               <a
-                href={`https://wa.me/${whatsappNumber}`}
+                href={whatsappUrl}
                 target="_blank"
                 rel="noreferrer"
                 className="rounded-xl bg-emerald-700 px-4 py-3 text-sm font-black text-white transition hover:bg-emerald-800"

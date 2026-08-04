@@ -10,6 +10,8 @@ import {
 } from "@/lib/schema";
 import { and, asc, eq } from "drizzle-orm";
 
+import { createWhatsAppUrl } from "@/lib/whatsapp";
+
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
@@ -336,9 +338,7 @@ function getWhatsappUrl(
     return null;
   }
 
-  const digits = whatsappNumber.replace(/\D/g, "");
-
-  return digits ? `https://wa.me/${digits}` : null;
+  return createWhatsAppUrl(whatsappNumber) || null;
 }
 
 async function loadAssistantContext(): Promise<AssistantContext> {

@@ -10,6 +10,8 @@ import {
   useState,
 } from "react";
 
+import { createWhatsAppUrl } from "@/lib/whatsapp";
+
 type ChatRole = "assistant" | "user";
 
 type ChatMessage = {
@@ -163,12 +165,9 @@ export default function AssistantChat({
     });
   }, [messages, loading, showContactForm]);
 
-  const cleanWhatsappNumber =
-    whatsappNumber.replace(/\D/g, "");
-
-  const whatsappUrl = cleanWhatsappNumber
-    ? `https://wa.me/${cleanWhatsappNumber}`
-    : "";
+  const whatsappUrl = createWhatsAppUrl(
+    whatsappNumber,
+  );
 
   async function requestAssistant(
     requestBody: AssistantRequest,

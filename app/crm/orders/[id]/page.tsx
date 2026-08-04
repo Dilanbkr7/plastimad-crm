@@ -19,6 +19,7 @@ import {
   statusStyles,
   type OrderStatus,
 } from "@/lib/orders/status";
+import { createWhatsAppUrl } from "@/lib/whatsapp";
 
 import StatusUpdateForm from "./StatusUpdateForm";
 
@@ -52,20 +53,6 @@ function readableValue(
   value: string | null,
 ) {
   return value?.trim() || "No registrado";
-}
-
-function toWhatsappNumber(phone: string) {
-  const digits = phone.replace(/\D/g, "");
-
-  if (digits.startsWith("593")) {
-    return digits;
-  }
-
-  if (digits.startsWith("0")) {
-    return `593${digits.slice(1)}`;
-  }
-
-  return digits;
 }
 
 function getHistoryStatusLabel(
@@ -269,9 +256,7 @@ export default async function OrderDetailPage({
 
                     <dd className="mt-1">
                       <a
-                        href={`https://wa.me/${toWhatsappNumber(
-                          order.phone,
-                        )}`}
+                        href={createWhatsAppUrl(order.phone)}
                         target="_blank"
                         rel="noreferrer"
                         className="font-bold text-emerald-700 hover:underline"
