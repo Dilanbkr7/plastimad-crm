@@ -1,8 +1,5 @@
 import type { Metadata } from "next";
-import {
-  Geist,
-  Geist_Mono,
-} from "next/font/google";
+import { Geist, Geist_Mono } from "next/font/google";
 
 import "./globals.css";
 
@@ -17,11 +14,18 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title:
-    "Eco Maceta CNC | Plastimad Ecuador",
+  title: "Eco Maceta CNC | Plastimad Ecuador",
   description:
     "Compra la Eco Maceta CNC de Plastimad. Producto sostenible fabricado con plástico reciclado, entrega gratuita en Quito y envíos a provincias.",
   applicationName: "Plastimad",
+
+  verification: {
+    other: {
+      "facebook-domain-verification":
+        "txvvumdkw8lgrrb0l43qmuu8a3d298",
+    },
+  },
+
   keywords: [
     "Plastimad",
     "Eco Maceta CNC",
