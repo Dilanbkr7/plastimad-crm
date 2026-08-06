@@ -2,6 +2,7 @@ import {
   boolean,
   index,
   integer,
+  jsonb,
   pgTable,
   serial,
   text,
@@ -101,6 +102,31 @@ export const businessSettings = pgTable(
     })
       .notNull()
       .default("Quito"),
+
+    /** Horario de atención humana (0=domingo, 6=sábado). */
+    supportTimezone: varchar("support_timezone", {
+      length: 64,
+    })
+      .notNull()
+      .default("America/Guayaquil"),
+
+    supportDays: varchar("support_days", {
+      length: 20,
+    })
+      .notNull()
+      .default("1,2,3,4,5,6"),
+
+    supportOpenTime: varchar("support_open_time", {
+      length: 5,
+    })
+      .notNull()
+      .default("08:00"),
+
+    supportCloseTime: varchar("support_close_time", {
+      length: 5,
+    })
+      .notNull()
+      .default("17:00"),
 
     createdAt: timestamp("created_at", {
       withTimezone: true,
@@ -915,6 +941,46 @@ export const conversations = pgTable(
       .notNull()
       .default(false),
 
+    contactName: varchar("contact_name", {
+      length: 150,
+    }),
+
+    whatsappWaId: varchar("whatsapp_wa_id", {
+      length: 32,
+    }),
+
+    whatsappPhoneNumberId: varchar(
+      "whatsapp_phone_number_id",
+      {
+        length: 64,
+      },
+    ),
+
+    whatsappMode: varchar("whatsapp_mode", {
+      length: 20,
+    })
+      .notNull()
+      .default("AUTOMATICO"),
+
+    lastInboundAt: timestamp("last_inbound_at", {
+      withTimezone: true,
+    }),
+
+    lastOutboundAt: timestamp("last_outbound_at", {
+      withTimezone: true,
+    }),
+
+    customerServiceWindowExpiresAt: timestamp(
+      "customer_service_window_expires_at",
+      {
+        withTimezone: true,
+      },
+    ),
+
+    humanSince: timestamp("human_since", {
+      withTimezone: true,
+    }),
+
     createdAt: timestamp("created_at", {
       withTimezone: true,
     })
@@ -939,6 +1005,16 @@ export const conversations = pgTable(
     ),
     index("conversations_created_at_idx").on(
       table.createdAt,
+    ),
+    uniqueIndex("conversations_whatsapp_wa_id_unique").on(
+      table.whatsappWaId,
+    ),
+    index("conversations_channel_mode_idx").on(
+      table.channel,
+      table.whatsappMode,
+    ),
+    index("conversations_last_inbound_idx").on(
+      table.lastInboundAt,
     ),
   ],
 );
@@ -978,6 +1054,57 @@ export const conversationMessages = pgTable(
       length: 80,
     }),
 
+    metaMessageId: varchar("meta_message_id", {
+      length: 255,
+    }),
+
+    direction: varchar("direction", {
+      length: 20,
+    }),
+
+    messageType: varchar("message_type", {
+      length: 40,
+    }),
+
+    deliveryStatus: varchar("delivery_status", {
+      length: 30,
+    }),
+
+    origin: varchar("origin", {
+      length: 30,
+    }),
+
+    replyToMetaMessageId: varchar(
+      "reply_to_meta_message_id",
+      {
+        length: 255,
+      },
+    ),
+
+    errorCode: varchar("error_code", {
+      length: 50,
+    }),
+
+    errorMessage: text("error_message"),
+
+    rawPayload: jsonb("raw_payload"),
+
+    sentAt: timestamp("sent_at", {
+      withTimezone: true,
+    }),
+
+    deliveredAt: timestamp("delivered_at", {
+      withTimezone: true,
+    }),
+
+    readAt: timestamp("read_at", {
+      withTimezone: true,
+    }),
+
+    failedAt: timestamp("failed_at", {
+      withTimezone: true,
+    }),
+
     createdAt: timestamp("created_at", {
       withTimezone: true,
     })
@@ -991,5 +1118,11 @@ export const conversationMessages = pgTable(
     index(
       "conversation_messages_created_at_idx",
     ).on(table.createdAt),
+    uniqueIndex(
+      "conversation_messages_meta_message_id_unique",
+    ).on(table.metaMessageId),
+    index(
+      "conversation_messages_delivery_status_idx",
+    ).on(table.deliveryStatus),
   ],
 );
