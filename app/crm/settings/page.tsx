@@ -33,6 +33,10 @@ export default async function SettingsPage({
       businessName: businessSettings.businessName,
       phone: businessSettings.phone,
       whatsappNumber: businessSettings.whatsappNumber,
+      supportTimezone: businessSettings.supportTimezone,
+      supportDays: businessSettings.supportDays,
+      supportOpenTime: businessSettings.supportOpenTime,
+      supportCloseTime: businessSettings.supportCloseTime,
     })
     .from(businessSettings)
     .where(eq(businessSettings.code, "plastimad"))
@@ -85,6 +89,33 @@ export default async function SettingsPage({
             {errorMessage}
           </div>
         )}
+
+        <section className="mb-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h2 className="text-lg font-black text-slate-950">
+            Horario de atención humana
+          </h2>
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+              <p className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                Días y horas
+              </p>
+              <p className="mt-2 font-black text-slate-950">
+                Lunes a sábado, {settings.supportOpenTime} a {settings.supportCloseTime}
+              </p>
+            </div>
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+              <p className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                Zona horaria
+              </p>
+              <p className="mt-2 font-black text-slate-950">
+                {settings.supportTimezone}
+              </p>
+            </div>
+          </div>
+          <p className="mt-3 text-xs leading-5 text-slate-500">
+            El asistente automático puede responder las 24 horas. Fuera del horario informa que un asesor continuará en la siguiente jornada.
+          </p>
+        </section>
 
         <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
           <form action={updateBusinessWhatsApp} className="space-y-6">
