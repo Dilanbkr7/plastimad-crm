@@ -68,6 +68,8 @@ export default async function WhatsAppInboxPage() {
           .select({
             conversationId: conversationMessages.conversationId,
             content: conversationMessages.content,
+            mediaId: conversationMessages.mediaId,
+            mediaType: conversationMessages.mediaType,
             createdAt: conversationMessages.createdAt,
           })
           .from(conversationMessages)
@@ -78,13 +80,20 @@ export default async function WhatsAppInboxPage() {
 
   const latestByConversation = new Map<
     number,
-    { content: string; createdAt: Date }
+    { 
+      content: string;
+      mediaId: string | null;
+      mediaType: string | null;
+      createdAt: Date;
+    }
   >();
 
   for (const message of recentMessages) {
     if (!latestByConversation.has(message.conversationId)) {
       latestByConversation.set(message.conversationId, {
         content: message.content,
+        mediaId: message.mediaId,
+        mediaType: message.mediaType,
         createdAt: message.createdAt,
       });
     }
@@ -175,9 +184,24 @@ export default async function WhatsAppInboxPage() {
                         <p className="mt-1 text-sm text-slate-500">
                           {formatPhone(row.waId)}
                         </p>
-                        <p className="mt-2 max-w-3xl truncate text-sm text-slate-700">
-                          {latest?.content || "Sin mensajes registrados"}
-                        </p>
+
+
+                        {latest?.mediaId && latest.mediaType?.startsWith("image") ? (
+                          <div className="mt-2">
+                            <img
+                              src={`/api/whatsapp/media/${latest.mediaId}`}
+                              alt="Imagen recibida"
+                              className="h-24 w-24 rounded-lg object-cover"
+                            />
+                          </div>
+                        ) : (
+                          <p className="mt-2 max-w-3xl truncate text-sm text-slate-700">
+                            {latest?.content || "Sin mensajes registrados"}
+                          </p>
+                        )}
+
+
+
                       </div>
                       <div className="shrink-0 text-sm text-slate-500">
                         {formatDate(latest?.createdAt ?? row.lastInboundAt ?? row.updatedAt)}

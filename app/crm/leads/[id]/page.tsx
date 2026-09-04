@@ -533,7 +533,8 @@ export default async function LeadDetailPage({
                                           )}
                                         </div>
 
-                                        {message.mediaId ? (
+                                        {message.mediaId &&
+                                        message.mediaType?.startsWith("image") ? (
 
                                           <img
                                           src={`/api/whatsapp/media/${message.mediaId}`}

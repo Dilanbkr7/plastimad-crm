@@ -101,6 +101,8 @@ export default async function WhatsAppConversationPage({
       id: conversationMessages.id,
       role: conversationMessages.role,
       content: conversationMessages.content,
+      mediaId: conversationMessages.mediaId,
+      mediaType: conversationMessages.mediaType,
       direction: conversationMessages.direction,
       messageType: conversationMessages.messageType,
       status: conversationMessages.deliveryStatus,
@@ -211,9 +213,60 @@ export default async function WhatsAppConversationPage({
                       messageStyles[direction] ?? messageStyles.SYSTEM
                     }`}
                   >
-                    <p className="whitespace-pre-wrap text-sm leading-6">
-                      {message.content}
-                    </p>
+
+                    {message.mediaId && message.messageType === "image" ? (
+                      <img
+                        src={`/api/whatsapp/media/${message.mediaId}`}
+                        alt="Imagen recibida"
+                        className="max-w-sm rounded-xl"
+                      />
+                    ) : null}
+
+
+                    {message.mediaId && message.messageType === "audio" ? (
+                      <audio
+                        controls
+                        className="w-full max-w-sm"
+                      >
+                        <source
+                          src={`/api/whatsapp/media/${message.mediaId}`}
+                        />
+                        Tu navegador no soporta audio.
+                      </audio>
+                    ) : null}
+
+
+                    {message.mediaId && message.messageType === "video" ? (
+                      <video
+                        controls
+                        className="max-w-sm rounded-xl"
+                      >
+                        <source
+                          src={`/api/whatsapp/media/${message.mediaId}`}
+                        />
+                        Tu navegador no soporta video.
+                      </video>
+                    ) : null}
+
+
+                    {message.mediaId && message.messageType === "document" ? (
+                      <a
+                        href={`/api/whatsapp/media/${message.mediaId}`}
+                        target="_blank"
+                        className="font-bold text-blue-600 underline"
+                      >
+                        📄 Abrir documento
+                      </a>
+                    ) : null}
+
+
+                    {!message.mediaId || message.messageType === "text" ? (
+                      <p className="whitespace-pre-wrap text-sm leading-6">
+                        {message.content}
+                      </p>
+                    ) : null}
+
+
                     <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[11px] font-semibold opacity-70">
                       <span>{message.origin || message.role}</span>
                       <span>{message.messageType || "text"}</span>
