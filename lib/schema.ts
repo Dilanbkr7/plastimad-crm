@@ -888,6 +888,53 @@ export const leads = pgTable(
  * Puede comenzar anónimamente y asociarse después
  * con un lead cuando el visitante entregue sus datos.
  */
+export const crmUsers = pgTable(
+  "crm_users",
+  {
+    id: serial("id").primaryKey(),
+
+    supabaseUserId: uuid("supabase_user_id")
+      .notNull()
+      .unique(),
+
+    name: varchar("name", {
+      length: 150,
+    }).notNull(),
+
+    email: varchar("email", {
+      length: 255,
+    }).notNull(),
+
+    role: varchar("role", {
+      length: 30,
+    })
+      .notNull()
+      .default("ASESOR"),
+
+    rotationOrder: integer("rotation_order"),
+
+    active: boolean("active")
+      .notNull()
+      .default(true),
+
+    createdAt: timestamp("created_at", {
+      withTimezone: true,
+    })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("crm_users_email_unique").on(
+      table.email,
+    ),
+    index("crm_users_role_active_idx").on(table.role, table.active),
+
+    index("crm_users_rotation_idx").on(
+      table.rotationOrder,
+    ),
+  ],
+);
+
 export const conversations = pgTable(
   "conversations",
   {
@@ -899,6 +946,12 @@ export const conversations = pgTable(
 
     leadId: integer("lead_id").references(
       () => leads.id,
+      {
+        onDelete: "set null",
+      },
+    ),
+    assignedUserId: uuid("assigned_user_id").references(
+      () => crmUsers.supabaseUserId,
       {
         onDelete: "set null",
       },
@@ -1016,6 +1069,9 @@ export const conversations = pgTable(
     index("conversations_last_inbound_idx").on(
       table.lastInboundAt,
     ),
+    index("conversations_assigned_user_idx").on(
+      table.assignedUserId,
+    ),
   ],
 );
 
@@ -1047,9 +1103,25 @@ export const conversationMessages = pgTable(
     content: text("content").notNull(),
 
     /**
-     * Intención detectada en el mensaje.
-     * Puede ser null en mensajes administrativos.
+     * Multimedia enviada desde WhatsApp.
+     *
+     * Ejemplos:
+     * IMAGE
+     * VIDEO
+     * DOCUMENT
+     * AUDIO
      */
+
+    mediaId: varchar("media_id", {
+      length: 255,
+    }),
+
+    mediaUrl: text("media_url"),
+
+    mediaType: varchar("media_type", {
+      length: 50,
+    }),
+
     intent: varchar("intent", {
       length: 80,
     }),
@@ -1125,4 +1197,25 @@ export const conversationMessages = pgTable(
       "conversation_messages_delivery_status_idx",
     ).on(table.deliveryStatus),
   ],
+);
+/**
+ * Estado de rotación de asesores.
+ *
+ * Controla cuál fue el último asesor asignado.
+ */
+export const crmAssignmentState = pgTable(
+  "crm_assignment_state",
+  {
+    id: serial("id").primaryKey(),
+
+    lastRotationOrder: integer(
+      "last_rotation_order",
+    ),
+
+    updatedAt: timestamp("updated_at", {
+      withTimezone: true,
+    })
+      .notNull()
+      .defaultNow(),
+  },
 );
