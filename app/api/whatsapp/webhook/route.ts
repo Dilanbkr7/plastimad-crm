@@ -1,4 +1,4 @@
-  import { and, eq } from "drizzle-orm";  
+import { and, eq } from "drizzle-orm";  
   import { db } from "@/lib/db";
   import {
     conversationMessages,
@@ -30,6 +30,9 @@
     type MetaStatus,
     type MetaWebhookPayload,
   } from "@/lib/whatsapp/webhook-types";
+  import {
+  getWhatsAppMediaUrl,
+} from "@/lib/whatsapp/media";
 
   export const runtime = "nodejs";
   export const dynamic = "force-dynamic";
@@ -423,11 +426,34 @@
       JSON.stringify(options.message, null, 2)
   );
 
+
     const extracted = extractMessageContent(options.message);
+    let mediaUrl = extracted.mediaUrl;
+    if (
+
+      extracted.mediaId &&
+      extracted.messageType === "image"
+    ) {
+      console.log(
+        "CONSULTANDO MEDIA ID:",
+        extracted.mediaId,
+      );
+      mediaUrl = await getWhatsAppMediaUrl(
+        extracted.mediaId,
+    );
+
+    console.log(
+      "MEDIA URL OBTENIDA:",
+        mediaUrl,
+      );
+    } 
     console.log(
       "EXTRACTED RESULT:",
-      extracted
-  );
+      {
+        ...extracted,
+        mediaUrl,
+      },
+    );
 
     const conversation = await findOrCreateWhatsAppConversation({
       waId,
@@ -464,7 +490,7 @@
           messageType: extracted.messageType,
 
           mediaId: extracted.mediaId,
-          mediaUrl: extracted.mediaUrl,
+          mediaUrl,
           mediaType: extracted.mediaType,
           
           deliveryStatus: "RECEIVED",

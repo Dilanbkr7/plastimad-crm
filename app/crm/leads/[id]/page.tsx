@@ -171,6 +171,10 @@ export default async function LeadDetailPage({
               conversationMessages.content,
             intent:
               conversationMessages.intent,
+            mediaId:
+              conversationMessages.mediaId,
+            mediaType:
+              conversationMessages.mediaType,
             createdAt:
               conversationMessages.createdAt,
           })
@@ -529,11 +533,24 @@ export default async function LeadDetailPage({
                                           )}
                                         </div>
 
+                                        {message.mediaId ? (
+
+                                          <img
+                                          src={`/api/whatsapp/media/${message.mediaId}`}
+                                          alt="Imagen recibida"
+                                          className="mt-3 max-w-sm rounded-xl"
+                                        />
+
+                                      ) : (
+
                                         <p className="whitespace-pre-wrap">
                                           {
                                             message.content
                                           }
                                         </p>
+
+                                      )}
+
 
                                         <p className="mt-2 text-[11px] opacity-70">
                                           {formatDate(
