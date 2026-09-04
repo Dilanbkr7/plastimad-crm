@@ -416,6 +416,19 @@ import { and, eq } from "drizzle-orm";
     const waId = readWebhookString(options.message.from, 32).replace(/\D/g, "");
     const metaMessageId = readWebhookString(options.message.id, 255);
 
+    console.log(
+      "========== WHATSAPP MESSAGE =========="
+    );
+
+    console.log(
+      JSON.stringify(options.message, null, 2)
+    );
+
+    console.log(
+      "======================================"
+    );
+
+
     if (!waId || !metaMessageId) {
       return;
     }
@@ -431,8 +444,7 @@ import { and, eq } from "drizzle-orm";
     let mediaUrl = extracted.mediaUrl;
     if (
 
-      extracted.mediaId &&
-      extracted.messageType === "image"
+      extracted.mediaId 
     ) {
       console.log(
         "CONSULTANDO MEDIA ID:",
