@@ -1,27 +1,22 @@
-import { and, asc, eq, gt } from "drizzle-orm";
+import { asc, eq } from "drizzle-orm";
 
 import { db } from "@/lib/db";
 import {
+  crmAssignmentState,
   crmUsers,
-  conversations,
 } from "@/lib/schema";
 
 
-export async function assignConversationToAdvisor(
-  conversationId: number,
-) {
-
+export async function getNextAssignedUserId(): Promise<string | null> {
   const advisors = await db
     .select({
       supabaseUserId: crmUsers.supabaseUserId,
       rotationOrder: crmUsers.rotationOrder,
+      name: crmUsers.name,
     })
     .from(crmUsers)
     .where(
-      and(
-        eq(crmUsers.role, "ASESOR"),
-        eq(crmUsers.active, true),
-      ),
+      eq(crmUsers.role, "ASESOR"),
     )
     .orderBy(
       asc(crmUsers.rotationOrder),
@@ -29,61 +24,60 @@ export async function assignConversationToAdvisor(
 
 
   if (advisors.length === 0) {
+    console.error(
+      "No existen asesores activos para asignar",
+    );
+
     return null;
   }
 
 
-  const currentConversation =
-    await db
-      .select({
-        assignedUserId:
-          conversations.assignedUserId,
-      })
-      .from(conversations)
-      .where(
-        eq(
-          conversations.id,
-          conversationId,
-        ),
-      )
-      .limit(1);
+  const [state] = await db
+    .select({
+      lastRotationOrder:
+        crmAssignmentState.lastRotationOrder,
+    })
+    .from(crmAssignmentState)
+    .where(
+      eq(
+        crmAssignmentState.id,
+        1,
+      ),
+    )
+    .limit(1);
 
 
-  if (
-    currentConversation[0]?.assignedUserId
-  ) {
-    return currentConversation[0].assignedUserId;
-  }
-
-
-  const lastAssigned =
-    advisors[advisors.length - 1];
+  const lastOrder =
+    state?.lastRotationOrder ?? 0;
 
 
   const nextAdvisor =
     advisors.find(
       (advisor) =>
-        advisor.rotationOrder >
-        (lastAssigned.rotationOrder ?? 0),
-    )
-    ??
-    advisors[0];
+        (advisor.rotationOrder ?? 0) > lastOrder,
+    ) ?? advisors[0];
 
 
   await db
-    .update(conversations)
+    .update(crmAssignmentState)
     .set({
-      assignedUserId:
-        nextAdvisor.supabaseUserId,
-      updatedAt:
-        new Date(),
+      lastRotationOrder:
+        nextAdvisor.rotationOrder,
+      updatedAt: new Date(),
     })
     .where(
       eq(
-        conversations.id,
-        conversationId,
+        crmAssignmentState.id,
+        1,
       ),
     );
+
+
+  console.log(
+    "ASESOR ASIGNADO:",
+    nextAdvisor.name,
+    nextAdvisor.supabaseUserId,
+  );
 
 
   return nextAdvisor.supabaseUserId;

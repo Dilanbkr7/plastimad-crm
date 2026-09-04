@@ -1103,9 +1103,25 @@ export const conversationMessages = pgTable(
     content: text("content").notNull(),
 
     /**
-     * Intención detectada en el mensaje.
-     * Puede ser null en mensajes administrativos.
+     * Multimedia enviada desde WhatsApp.
+     *
+     * Ejemplos:
+     * IMAGE
+     * VIDEO
+     * DOCUMENT
+     * AUDIO
      */
+
+    mediaId: varchar("media_id", {
+      length: 255,
+    }),
+
+    mediaUrl: text("media_url"),
+
+    mediaType: varchar("media_type", {
+      length: 50,
+    }),
+
     intent: varchar("intent", {
       length: 80,
     }),
@@ -1181,4 +1197,25 @@ export const conversationMessages = pgTable(
       "conversation_messages_delivery_status_idx",
     ).on(table.deliveryStatus),
   ],
+);
+/**
+ * Estado de rotación de asesores.
+ *
+ * Controla cuál fue el último asesor asignado.
+ */
+export const crmAssignmentState = pgTable(
+  "crm_assignment_state",
+  {
+    id: serial("id").primaryKey(),
+
+    lastRotationOrder: integer(
+      "last_rotation_order",
+    ),
+
+    updatedAt: timestamp("updated_at", {
+      withTimezone: true,
+    })
+      .notNull()
+      .defaultNow(),
+  },
 );
