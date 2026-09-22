@@ -1034,6 +1034,10 @@ export const conversations = pgTable(
       withTimezone: true,
     }),
 
+    botReplyCount: integer("bot_reply_count").notNull().default(0),
+    botHandoffAt: timestamp("bot_handoff_at", { withTimezone: true }),
+    botPaused: boolean("bot_paused").notNull().default(false),
+
     createdAt: timestamp("created_at", {
       withTimezone: true,
     })

@@ -9,7 +9,7 @@ import {
   conversationMessages,
   conversations,
 } from "@/lib/schema";
-import { createClient } from "@/lib/supabase/server";
+import { getCrmUser } from "@/lib/auth";
 import {
   sendWhatsAppText,
   WhatsAppApiError,
@@ -18,16 +18,7 @@ import {
 const VALID_MODES = new Set(["AUTOMATICO", "HUMANO", "CERRADO"]);
 
 async function requireAuthenticatedUser(next: string) {
-  const supabase = await createClient();
-  const { data, error } = await supabase.auth.getClaims();
-
-  if (
-    error ||
-    !data?.claims ||
-    typeof data.claims.sub !== "string"
-  ) {
-    redirect(`/login?next=${encodeURIComponent(next)}`);
-  }
+  if (!await getCrmUser()) redirect(`/login?next=${encodeURIComponent(next)}`);
 }
 
 function readPublicId(formData: FormData): string {
@@ -66,6 +57,8 @@ export async function updateWhatsAppConversationMode(formData: FormData) {
     .update(conversations)
     .set({
       whatsappMode: mode,
+      botPaused: mode !== "AUTOMATICO",
+      ...(mode === "AUTOMATICO" ? { botReplyCount: 0, botHandoffAt: null } : {}),
       status: mode === "CERRADO" ? "CERRADA" : mode === "HUMANO" ? "ESCALADA" : "ABIERTA",
       requiresHuman: mode === "HUMANO",
       humanSince: mode === "HUMANO" ? now : null,
@@ -153,6 +146,7 @@ export async function sendWhatsAppCrmMessage(formData: FormData) {
         .update(conversations)
         .set({
           whatsappMode: "HUMANO",
+          botPaused: true,
           status: "ESCALADA",
           requiresHuman: true,
           humanSince: now,

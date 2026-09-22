@@ -1,3 +1,7 @@
+import { and, eq } from "drizzle-orm";
+import { db } from "@/lib/db";
+import { conversationMessages, conversations } from "@/lib/schema";
+import { getCrmUser } from "@/lib/auth";
 import {
   NextRequest,
   NextResponse,
@@ -23,7 +27,14 @@ export async function GET(
     }>;
   },
 ) {
+  const user = await getCrmUser();
+  if (!user) return new NextResponse("No autorizado", { status: 401, headers: { "Cache-Control": "no-store" } });
   const { mediaId } = await context.params;
+  if (!/^\d{1,40}$/.test(mediaId)) return new NextResponse("Invalid media id", { status: 400 });
+  const [record] = await db.select({ id: conversationMessages.id }).from(conversationMessages)
+    .innerJoin(conversations, eq(conversations.id, conversationMessages.conversationId))
+    .where(and(eq(conversationMessages.mediaId, mediaId), eq(conversations.channel, "WHATSAPP"))).limit(1);
+  if (!record) return new NextResponse("Archivo no encontrado", { status: 404 });
 
   if (!ACCESS_TOKEN) {
     return new NextResponse(
@@ -58,6 +69,7 @@ export async function GET(
             `Bearer ${ACCESS_TOKEN}`,
         },
         cache: "no-store",
+        signal: AbortSignal.timeout(15_000),
       },
     );
 
@@ -131,6 +143,7 @@ export async function GET(
       {
         headers: downloadHeaders,
         cache: "no-store",
+        signal: AbortSignal.timeout(15_000),
       },
     );
 
@@ -221,8 +234,7 @@ export async function GET(
       );
     }
 
-    const buffer =
-      await mediaResponse.arrayBuffer();
+
 
     /*
      * Importante:
@@ -230,7 +242,7 @@ export async function GET(
      * conservamos ese status para audio/video.
      */
     return new NextResponse(
-      buffer,
+      mediaResponse.body,
       {
         status: mediaResponse.status,
         headers: responseHeaders,

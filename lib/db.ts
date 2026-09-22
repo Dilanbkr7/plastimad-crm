@@ -27,6 +27,9 @@ const client = postgres(connectionString, {
    * Limita las conexiones durante el desarrollo.
    */
   max: 1,
+  connect_timeout: 10,
+  idle_timeout: 20,
+  connection: { statement_timeout: 15000 },
 });
 
 /**

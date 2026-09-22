@@ -18,6 +18,9 @@ export const config = {
      * Ejecuta el proxy en las rutas de la aplicación,
      * excluyendo archivos internos e imágenes.
      */
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/crm/:path*",
+    "/login",
+    "/api/admin/:path*",
+    "/api/whatsapp/media/:path*",
   ],
 };

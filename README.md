@@ -2,6 +2,8 @@
 
 Aplicación de producción de Plastimad construida con Next.js 16, Supabase, PostgreSQL y Drizzle ORM. Incluye landing comercial, registro de pedidos, redirección a WhatsApp, asistente de consultas y CRM protegido por autenticación.
 
+La guía actual de despliegue, respaldo, caché y límites del bot está en [OPERACION_PRODUCCION.md](OPERACION_PRODUCCION.md). La migración aditiva indicada allí debe aplicarse antes de publicar esta versión.
+
 ## Arquitectura
 
 ```text
@@ -30,18 +32,14 @@ NEXT_PUBLIC_APP_NAME
 
 El número empresarial no se guarda en variables de entorno. Se administra centralmente en la tabla `business_settings` y desde `/crm/settings`.
 
-## Número empresarial activo
+## Números de WhatsApp
 
 ```text
-Visible:   +593 99 515 2308
-WhatsApp:  593995152308
+Cloud API y pedidos: +593 98 433 2620 (593984332620)
+Equipo comercial:   +593 99 515 2308 (593995152308)
 ```
 
-Para actualizar una base de datos existente, ejecuta en Supabase SQL Editor:
-
-```text
-scripts/sql/update_business_contact.sql
-```
+El número Cloud API se conserva en `business_settings` y en la configuración de Meta. El enlace del equipo comercial está separado en `lib/commercial.ts`. No ejecutar el antiguo `update_business_contact.sql`: sustituye el contacto de la landing y mezclaría ambos destinos.
 
 Para comprobar si el antiguo número de pruebas quedó guardado en clientes o leads históricos, ejecuta la auditoría no destructiva:
 
@@ -60,8 +58,8 @@ Un único cambio actualiza:
 - número visible en la landing;
 - botones de WhatsApp;
 - destinatario de pedidos;
-- enlace del asistente comercial;
-- datos de contacto devueltos por la API del asistente.
+
+El enlace de derivación del asistente comercial se mantiene separado. El bot de WhatsApp responde dos consultas y en la tercera entrega ese enlace; solicitar asesor o enviar multimedia deriva inmediatamente.
 
 ## Desarrollo local
 

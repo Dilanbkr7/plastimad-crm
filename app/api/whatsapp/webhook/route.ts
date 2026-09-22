@@ -4,13 +4,10 @@ import { and, eq } from "drizzle-orm";
     conversationMessages,
     conversations,
   } from "@/lib/schema";
-  import { buildWhatsAppAutomationReply } from "@/lib/whatsapp/automation";
+  import { buildWhatsAppAutomationReply, detectWhatsAppIntent } from "@/lib/whatsapp/automation";
   import {
     getWhatsAppRuntimeConfig,
-    markWhatsAppMessageRead,
-    sendWhatsAppText,
     verifyMetaWebhookSignature,
-    WhatsAppApiError,
     WhatsAppConfigurationError,
   } from "@/lib/whatsapp/cloud";
   import {
@@ -30,9 +27,9 @@ import { and, eq } from "drizzle-orm";
     type MetaStatus,
     type MetaWebhookPayload,
   } from "@/lib/whatsapp/webhook-types";
-  import {
-  getWhatsAppMediaUrl,
-} from "@/lib/whatsapp/media";
+import { recordIncomingMessage } from "@/lib/whatsapp/record-message";
+import { decideBotReply } from "@/lib/whatsapp/flow";
+import { deliverAutomationReply } from "@/lib/whatsapp/outbox";
 
   export const runtime = "nodejs";
   export const dynamic = "force-dynamic";
@@ -45,6 +42,9 @@ import { and, eq } from "drizzle-orm";
     publicId: string;
     whatsappMode: string;
     status: string;
+    botReplyCount: number;
+    botHandoffAt: Date | null;
+    botPaused: boolean;
   };
 
   function noStoreHeaders(contentType = "application/json") {
@@ -150,11 +150,7 @@ import { and, eq } from "drizzle-orm";
         replyToMetaMessageId,
         mediaId,
         mediaUrl: null,
-        mediaType:
-          readWebhookString(
-            message.image?.mime_type,
-            50,
-          )|| "IMAGE",
+        mediaType: "IMAGE",
       };
     }
 
@@ -269,6 +265,9 @@ import { and, eq } from "drizzle-orm";
         publicId: conversations.publicId,
         whatsappMode: conversations.whatsappMode,
         status: conversations.status,
+        botReplyCount: conversations.botReplyCount,
+        botHandoffAt: conversations.botHandoffAt,
+        botPaused: conversations.botPaused,
       })
       .from(conversations)
       .where(
@@ -320,6 +319,9 @@ import { and, eq } from "drizzle-orm";
         publicId: conversations.publicId,
         whatsappMode: conversations.whatsappMode,
         status: conversations.status,
+        botReplyCount: conversations.botReplyCount,
+        botHandoffAt: conversations.botHandoffAt,
+        botPaused: conversations.botPaused,
       });
 
     if (created) {
@@ -335,78 +337,6 @@ import { and, eq } from "drizzle-orm";
     return raced;
   }
 
-  async function saveOutboundReply(options: {
-    conversationId: number;
-    waId: string;
-    body: string;
-    replyToMetaMessageId: string;
-    phoneNumberId: string;
-  }) {
-    try {
-      const result = await sendWhatsAppText({
-        to: options.waId,
-        body: options.body,
-        replyToMessageId: options.replyToMetaMessageId,
-      });
-
-      const now = new Date();
-
-      await db.insert(conversationMessages).values({
-        conversationId: options.conversationId,
-        role: "ASSISTANT",
-        content: options.body,
-        metaMessageId: result.messageId,
-        direction: "OUTBOUND",
-        messageType: "text",
-        deliveryStatus: "SENT",
-        origin: "CLOUD_API",
-        replyToMetaMessageId: options.replyToMetaMessageId,
-        sentAt: now,
-        rawPayload: {
-          phoneNumberId: options.phoneNumberId,
-        },
-      });
-
-      await db
-        .update(conversations)
-        .set({
-          lastOutboundAt: now,
-          updatedAt: now,
-        })
-        .where(eq(conversations.id, options.conversationId));
-    } catch (error) {
-      const now = new Date();
-      const code =
-        error instanceof WhatsAppApiError && error.code !== null
-          ? String(error.code)
-          : null;
-      const message =
-        error instanceof Error
-          ? error.message.slice(0, 2_000)
-          : "Error desconocido al enviar el mensaje.";
-
-      await db.insert(conversationMessages).values({
-        conversationId: options.conversationId,
-        role: "SYSTEM",
-        content: options.body,
-        direction: "OUTBOUND",
-        messageType: "text",
-        deliveryStatus: "FAILED",
-        origin: "CLOUD_API",
-        replyToMetaMessageId: options.replyToMetaMessageId,
-        errorCode: code,
-        errorMessage: message,
-        failedAt: now,
-        rawPayload:
-          error instanceof WhatsAppApiError
-            ? error.details
-            : null,
-      });
-
-      console.error("No se pudo enviar la respuesta automática de WhatsApp:", error);
-    }
-  }
-
   async function processIncomingMessage(options: {
     message: MetaMessage;
     phoneNumberId: string;
@@ -415,157 +345,36 @@ import { and, eq } from "drizzle-orm";
   }) {
     const waId = readWebhookString(options.message.from, 32).replace(/\D/g, "");
     const metaMessageId = readWebhookString(options.message.id, 255);
+    if (!waId || !metaMessageId) return;
 
-    console.log(
-      "========== WHATSAPP MESSAGE =========="
-    );
-
-    console.log(
-      JSON.stringify(options.message, null, 2)
-    );
-
-    console.log(
-      "======================================"
-    );
-
-
-    if (!waId || !metaMessageId) {
+    const [duplicate] = await db.select({ id: conversationMessages.id })
+      .from(conversationMessages).where(eq(conversationMessages.metaMessageId, metaMessageId)).limit(1);
+    if (duplicate) {
+      await deliverAutomationReply(metaMessageId);
       return;
     }
-
     const receivedAt = parseUnixTimestamp(options.message.timestamp);
-    console.log(
-      "MENSAJE ORIGINAL META:",
-      JSON.stringify(options.message, null, 2)
-  );
-
-
     const extracted = extractMessageContent(options.message);
-    let mediaUrl = extracted.mediaUrl;
-    if (
-
-      extracted.mediaId 
-    ) {
-      console.log(
-        "CONSULTANDO MEDIA ID:",
-        extracted.mediaId,
-      );
-      mediaUrl = await getWhatsAppMediaUrl(
-        extracted.mediaId,
-    );
-
-    console.log(
-      "MEDIA URL OBTENIDA:",
-        mediaUrl,
-      );
-    } 
-    console.log(
-      "EXTRACTED RESULT:",
-      {
-        ...extracted,
-        mediaUrl,
-      },
-    );
-
     const conversation = await findOrCreateWhatsAppConversation({
-      waId,
-      phoneNumberId: options.phoneNumberId,
-      contactName: options.contactName,
-      receivedAt,
+      waId, phoneNumberId: options.phoneNumberId, contactName: options.contactName, receivedAt,
     });
-
-    const reopened = conversation.whatsappMode === "CERRADO";
-    const activeMode = reopened ? "AUTOMATICO" : conversation.whatsappMode;
-    const automation = await buildWhatsAppAutomationReply({
-      message: extracted.content,
+    const intent = detectWhatsAppIntent(extracted.content);
+    const initialDecision = decideBotReply({
+      enabled: options.autoReplyEnabled, paused: conversation.botPaused,
+      handedOff: Boolean(conversation.botHandoffAt), replyCount: conversation.botReplyCount,
+      asksForHuman: intent === "ASESOR" || conversation.whatsappMode === "HUMANO",
       messageType: extracted.messageType,
     });
-    const newlyEscalated =
-      automation.requiresHuman && activeMode !== "HUMANO";
-    const remainsHuman =
-      activeMode === "HUMANO" || automation.requiresHuman;
-    const nextMode = remainsHuman ? "HUMANO" : activeMode;
-    const now = new Date();
+    const draft = initialDecision === "ANSWER"
+      ? await buildWhatsAppAutomationReply({ message: extracted.content, messageType: "text" })
+      : null;
 
-    const processed = await db.transaction(async (transaction) => {
-      const inserted = await transaction
-        .insert(conversationMessages)
-        .values({
-          conversationId: conversation.id,
-          role: "USER",
-          content: extracted.content,
-          intent: automation.intent,
-
-          metaMessageId,
-
-          direction: "INBOUND",
-          messageType: extracted.messageType,
-
-          mediaId: extracted.mediaId,
-          mediaUrl,
-          mediaType: extracted.mediaType,
-          
-          deliveryStatus: "RECEIVED",
-          origin: "CUSTOMER",
-
-          replyToMetaMessageId:
-            extracted.replyToMetaMessageId,
-          sentAt: receivedAt,
-          rawPayload: options.message,
-        })
-        .onConflictDoNothing({
-          target: conversationMessages.metaMessageId,
-        })
-        .returning({ id: conversationMessages.id });
-
-      if (inserted.length === 0) {
-        return false;
-      }
-
-      await transaction
-        .update(conversations)
-        .set({
-          contactName: options.contactName,
-          whatsappPhoneNumberId: options.phoneNumberId,
-          whatsappMode: nextMode,
-          status: remainsHuman ? "ESCALADA" : "ABIERTA",
-          requiresHuman: remainsHuman,
-          humanSince: newlyEscalated ? now : reopened ? null : undefined,
-          lastIntent: automation.intent,
-          lastInboundAt: receivedAt,
-          customerServiceWindowExpiresAt: addServiceWindow(receivedAt),
-          updatedAt: now,
-        })
-        .where(eq(conversations.id, conversation.id));
-
-      return true;
-    });
-
-    if (!processed) {
-      return;
-    }
-
-    try {
-      await markWhatsAppMessageRead(metaMessageId);
-    } catch (error) {
-      console.warn("No se pudo marcar el mensaje como leído:", error);
-    }
-
-    const shouldReply =
-      options.autoReplyEnabled &&
-      (activeMode === "AUTOMATICO" || newlyEscalated);
-
-    if (!shouldReply) {
-      return;
-    }
-
-    await saveOutboundReply({
-      conversationId: conversation.id,
-      waId,
-      body: automation.reply,
-      replyToMetaMessageId: metaMessageId,
-      phoneNumberId: options.phoneNumberId,
-    });
+    await db.transaction((tx) => recordIncomingMessage(tx, {
+      conversationId: conversation.id, metaMessageId, waId, intent,
+      contactName: options.contactName, phoneNumberId: options.phoneNumberId,
+      autoReplyEnabled: options.autoReplyEnabled, receivedAt, message: options.message, draft, extracted,
+    }));
+    await deliverAutomationReply(metaMessageId);
   }
 
   function statusTimestampPatch(status: string, timestamp: Date) {
@@ -688,6 +497,7 @@ import { and, eq } from "drizzle-orm";
       .update(conversations)
       .set({
         whatsappMode: "HUMANO",
+        botPaused: true,
         status: "ESCALADA",
         requiresHuman: true,
         humanSince: sentAt,
@@ -738,7 +548,7 @@ import { and, eq } from "drizzle-orm";
 
   export async function POST(request: Request) {
 
-    console.log("🔥 WEBHOOK RECIBIDO");
+
     const contentLength = Number(request.headers.get("content-length") ?? "0");
 
     if (

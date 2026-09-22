@@ -7,17 +7,17 @@
  */
 export const LANDING_ASSETS = {
   hero: {
-    src: "/plastimad/landing/hero.png",
+    src: "/plastimad/optimized-v1/hero.webp",
     position: "center 42%",
   },
 
   productMain: {
-    src: "/plastimad/landing/eco-maceta-principal.png",
+    src: "/plastimad/optimized-v1/eco-maceta-principal.webp",
     position: "center center",
   },
 
   productSecondary: {
-    src: "/plastimad/landing/eco-maceta-secundaria.png",
+    src: "/plastimad/optimized-v1/eco-maceta-secundaria.webp",
     position: "center 35%",
   },
 } as const;

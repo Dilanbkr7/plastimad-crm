@@ -4,6 +4,7 @@ import { connection } from "next/server";
 import { db } from "@/lib/db";
 import { businessSettings } from "@/lib/schema";
 import { formatEcuadorMobile } from "@/lib/whatsapp";
+import { COMMERCIAL_WHATSAPP_PHONE, COMMERCIAL_WHATSAPP_URL } from "@/lib/commercial";
 
 import { updateBusinessWhatsApp } from "./actions";
 
@@ -113,7 +114,10 @@ export default async function SettingsPage({
             </div>
           </div>
           <p className="mt-3 text-xs leading-5 text-slate-500">
-            El asistente automático puede responder las 24 horas. Fuera del horario informa que un asesor continuará en la siguiente jornada.
+            El bot responde dos consultas y, en la tercera interacción, deriva al equipo comercial. Los archivos y las solicitudes de asesor se derivan de inmediato.
+          </p>
+          <p className="mt-3 text-sm font-semibold text-emerald-800">
+            Atención comercial: <a href={COMMERCIAL_WHATSAPP_URL} target="_blank" rel="noopener noreferrer" className="underline">{COMMERCIAL_WHATSAPP_PHONE}</a>
           </p>
         </section>
 

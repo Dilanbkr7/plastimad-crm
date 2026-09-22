@@ -4,7 +4,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { logout } from "@/app/login/actions";
-import { createClient } from "@/lib/supabase/server";
+import { getCrmUser } from "@/lib/auth";
 
 type CRMLayoutProps = {
   children: ReactNode;
@@ -16,25 +16,9 @@ type CRMLayoutProps = {
 export default async function CRMLayout({
   children,
 }: CRMLayoutProps) {
-  const supabase = await createClient();
-
-  const { data, error } =
-    await supabase.auth.getClaims();
-
-  const claims = data?.claims;
-
-  if (
-    error ||
-    !claims ||
-    typeof claims.sub !== "string"
-  ) {
-    redirect("/login?next=/crm");
-  }
-
-  const email =
-    typeof claims.email === "string"
-      ? claims.email
-      : "Administrador";
+  const user = await getCrmUser();
+  if (!user) redirect("/login?next=/crm");
+  const email = user.email;
 
   return (
     <div className="min-h-screen bg-slate-100">

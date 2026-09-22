@@ -13,7 +13,7 @@ import {
   isOrderStatus,
   statusesRequiringNote,
 } from "@/lib/orders/status";
-import { createClient } from "@/lib/supabase/server";
+import { getCrmUser } from "@/lib/auth";
 
 type RouteContext = {
   params: Promise<{
@@ -41,18 +41,8 @@ export async function PATCH(
   context: RouteContext,
 ) {
   try {
-    const supabase = await createClient();
-
-    const { data, error } =
-      await supabase.auth.getClaims();
-
-    const claims = data?.claims;
-
-    if (
-      error ||
-      !claims ||
-      typeof claims.sub !== "string"
-    ) {
+    const user = await getCrmUser();
+    if (!user) {
       return Response.json(
         {
           ok: false,
@@ -212,8 +202,8 @@ export async function PATCH(
     }
 
     const changedByEmail =
-      typeof claims.email === "string"
-        ? claims.email
+      typeof user.email === "string"
+        ? user.email
         : "administrador@plastimad.local";
 
     const result = await db.transaction(
@@ -270,7 +260,7 @@ export async function PATCH(
                 currentOrder.status,
               newStatus: requestedStatus,
               note: note || null,
-              changedByUserId: claims.sub,
+              changedByUserId: user.id,
               changedByEmail,
             })
             .returning();

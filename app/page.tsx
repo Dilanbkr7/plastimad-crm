@@ -1,3 +1,4 @@
+import { COMMERCIAL_WHATSAPP_NUMBER } from "@/lib/commercial";
 import type { CSSProperties } from "react";
 
 import Image from "next/image";
@@ -7,7 +8,7 @@ import {
   asc,
   eq,
 } from "drizzle-orm";
-import { connection } from "next/server";
+import { unstable_cache } from "next/cache";
 
 import AssistantChat from "@/components/landing/AssistantChat";
 import OrderForm from "@/components/landing/OrderForm";
@@ -20,8 +21,9 @@ import {
   products,
 } from "@/lib/schema";
 
-export default async function HomePage() {
-  await connection();
+export const revalidate = 300;
+
+const loadLanding = unstable_cache(async () => {
 
   const [settings] = await db
     .select({
@@ -115,6 +117,12 @@ export default async function HomePage() {
     )
     .orderBy(asc(deliveryZones.id));
 
+  return { settings, product, offerRows, zoneRows };
+}, ["landing-v2"], { revalidate: 300, tags: ["public-catalog"] });
+
+export default async function HomePage() {
+  const { settings, product, offerRows, zoneRows } = await loadLanding();
+
   if (!settings || !product) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-slate-50 px-6">
@@ -142,8 +150,9 @@ export default async function HomePage() {
   } as CSSProperties;
 
   const logoSource =
-    settings.logoUrl ||
-    "/plastimad/logo.png";
+    settings.logoUrl && settings.logoUrl !== "/plastimad/logo.png"
+      ? settings.logoUrl
+      : "/plastimad/optimized-v1/logo.webp";
 
   const startingPrice =
     offerRows.length > 0
@@ -515,9 +524,7 @@ export default async function HomePage() {
 
       <AssistantChat
         businessName={settings.businessName}
-        whatsappNumber={
-          settings.whatsappNumber
-        }
+        whatsappNumber={COMMERCIAL_WHATSAPP_NUMBER}
       />
     </main>
   );

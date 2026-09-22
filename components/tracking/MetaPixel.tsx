@@ -1,8 +1,22 @@
 "use client";
 
 import Script from "next/script";
+import { usePathname } from "next/navigation";
+import { useEffect } from "react";
+import { trackWhatsAppClick } from "@/lib/tracking";
 
 export default function MetaPixel() {
+  const pathname = usePathname();
+  useEffect(() => {
+    if (pathname !== "/") return;
+    const onClick = (event: MouseEvent) => {
+      const target = event.target instanceof Element ? event.target.closest("a") : null;
+      if (target?.href.startsWith("https://wa.me/")) trackWhatsAppClick();
+    };
+    document.addEventListener("click", onClick);
+    return () => document.removeEventListener("click", onClick);
+  }, [pathname]);
+  if (pathname !== "/") return null;
   return (
     <Script
       id="meta-pixel"

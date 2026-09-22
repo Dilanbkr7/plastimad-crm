@@ -1,3 +1,5 @@
+import { createHash, randomUUID } from "node:crypto";
+import { guardPublicRequest, readBoundedJson, RequestError, requestErrorResponse } from "@/lib/request-guard";
 import { db } from "@/lib/db";
 import {
   customers,
@@ -7,7 +9,7 @@ import {
   products,
   productVariants,
 } from "@/lib/schema";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, sql } from "drizzle-orm";
 
 /**
  * Datos que podrá enviar la futura landing.
@@ -120,22 +122,23 @@ export async function GET() {
  */
 export async function POST(request: Request) {
   let body: CreateOrderBody;
-
-  try {
-    body = (await request.json()) as CreateOrderBody;
-  } catch {
-    return Response.json(
-      {
-        ok: false,
-        message: "El cuerpo de la solicitud no contiene JSON válido.",
-      },
-      {
-        status: 400,
-      },
-    );
+  const requestId = request.headers.get("idempotency-key") || randomUUID();
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(requestId)) {
+    return requestErrorResponse(new RequestError(400, "Identificador de pedido inválido."));
   }
+  try {
+    body = await readBoundedJson(request);
+    await guardPublicRequest(request, "orders", 6);
+  } catch (error) { return requestErrorResponse(error); }
+  const payloadHash = createHash("sha256").update(JSON.stringify(body)).digest("hex");
 
   try {
+    const saved = await db.execute(sql`SELECT payload_hash, response FROM order_requests WHERE request_id = ${requestId}::uuid`);
+    if (saved.length) {
+      if (saved[0].payload_hash !== payloadHash) throw new RequestError(409, "El identificador ya pertenece a otro pedido.");
+      return Response.json({ ok: true, message: "Pedido registrado correctamente.", data: saved[0].response },
+        { status: 201, headers: { "Cache-Control": "no-store" } });
+    }
     const name = readText(body.name, 120);
     const phone = normalizePhone(body.phone);
     const email = readText(body.email, 255).toLowerCase();
@@ -493,6 +496,12 @@ export async function POST(request: Request) {
      * información incompleta.
      */
     const result = await db.transaction(async (transaction) => {
+      await transaction.execute(sql`SELECT pg_advisory_xact_lock(hashtextextended(${requestId}, 0))`);
+      const previous = await transaction.execute(sql`SELECT payload_hash, response FROM order_requests WHERE request_id = ${requestId}::uuid`);
+      if (previous.length) {
+        if (previous[0].payload_hash !== payloadHash) throw new RequestError(409, "El pedido cambió. Actualice la página antes de reintentar.");
+        return previous[0].response;
+      }
       const [existingCustomer] = await transaction
         .select()
         .from(customers)
@@ -586,55 +595,26 @@ export async function POST(request: Request) {
         throw new Error("No se pudo crear el pedido.");
       }
 
-      return {
-        customer,
-        order,
+      const data = {
+        order: { id: order.id, product: order.product, quantity: order.quantity,
+          address: order.address, province: order.province, city: order.city,
+          sector: order.sector, reference: order.reference, paymentMethod: order.paymentMethod, total: order.total },
+        product: { id: catalogSelection.productId, name: catalogSelection.productName },
+        offer: { id: catalogSelection.offerId, name: catalogSelection.offerName,
+          quantity: catalogSelection.quantity, priceCents: catalogSelection.priceCents },
+        variant: selectedVariant ?? null,
+        delivery: { zoneId: zone.id, zoneName: zone.name, type: zone.deliveryType,
+          feeCents: deliveryFeeCents, freeDelivery: zone.freeDelivery, shippingQuoteRequired: zone.requiresQuote },
+        pricing: { subtotalCents, deliveryFeeCents, totalCents: totalInCents },
       };
+      await transaction.execute(sql`INSERT INTO order_requests (request_id,payload_hash,order_id,response)
+        VALUES (${requestId}::uuid,${payloadHash},${order.id},${JSON.stringify(data)}::jsonb)`);
+      return data;
     });
-
-    return Response.json(
-      {
-        ok: true,
-        message: "Pedido registrado correctamente.",
-
-        data: {
-          ...result,
-
-          product: {
-            id: catalogSelection.productId,
-            name: catalogSelection.productName,
-          },
-
-          offer: {
-            id: catalogSelection.offerId,
-            name: catalogSelection.offerName,
-            quantity: catalogSelection.quantity,
-            priceCents: catalogSelection.priceCents,
-          },
-
-          variant: selectedVariant ?? null,
-
-          delivery: {
-            zoneId: zone.id,
-            zoneName: zone.name,
-            type: zone.deliveryType,
-            feeCents: deliveryFeeCents,
-            freeDelivery: zone.freeDelivery,
-            shippingQuoteRequired: zone.requiresQuote,
-          },
-
-          pricing: {
-            subtotalCents,
-            deliveryFeeCents,
-            totalCents: totalInCents,
-          },
-        },
-      },
-      {
-        status: 201,
-      },
-    );
+    return Response.json({ ok: true, message: "Pedido registrado correctamente.", data: result },
+      { status: 201, headers: { "Cache-Control": "no-store" } });
   } catch (error) {
+    if (error instanceof RequestError) return requestErrorResponse(error);
     console.error("Error al registrar el pedido:", error);
 
     return Response.json(

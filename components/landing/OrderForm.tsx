@@ -3,10 +3,12 @@
 import type { FormEvent } from "react";
 import {
   useMemo,
+  useRef,
   useState,
 } from "react";
 
 import { createWhatsAppUrl } from "@/lib/whatsapp";
+import { trackLead } from "@/lib/tracking";
 
 type LandingOffer = {
   id: number;
@@ -144,6 +146,7 @@ export default function OrderForm({
     );
 
   const [loading, setLoading] = useState(false);
+  const pendingRequest = useRef({ body: "", key: "" });
   const [errorMessage, setErrorMessage] =
     useState("");
 
@@ -202,6 +205,7 @@ export default function OrderForm({
     event: FormEvent<HTMLFormElement>,
   ) {
     event.preventDefault();
+    if (loading) return;
     setErrorMessage("");
 
     if (!selectedOffer || !selectedZone) {
@@ -264,12 +268,17 @@ export default function OrderForm({
           currentParams.get("utm_content") ?? "",
       };
 
+      const encodedBody = JSON.stringify(body);
+      if (pendingRequest.current.body !== encodedBody) {
+        pendingRequest.current = { body: encodedBody, key: crypto.randomUUID() };
+      }
       const response = await fetch("/api/orders", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "Idempotency-Key": pendingRequest.current.key,
         },
-        body: JSON.stringify(body),
+        body: encodedBody,
       });
 
       const payload =
@@ -287,6 +296,7 @@ export default function OrderForm({
       }
 
       const order = payload.data.order;
+      trackLead(`order-${order.id}`, "Pedido registrado");
       const delivery = payload.data.delivery;
       const pricing = payload.data.pricing;
 
