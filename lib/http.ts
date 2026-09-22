@@ -4,7 +4,19 @@ export class RequestError extends Error {
 
 export async function readBoundedJson(request: Request, maxBytes = 16_384) {
   const origin = request.headers.get("origin");
-  if (origin && origin !== new URL(request.url).origin) throw new RequestError(403, "Origen no permitido.");
+  // Netlify may use the immutable deployment URL internally for custom-domain requests.
+  // Never trust client-supplied forwarded-host headers to expand this allowlist.
+  const allowedOrigins = new Set([
+    new URL(request.url).origin,
+    "https://plastimadshop.com",
+    "https://www.plastimadshop.com",
+  ]);
+  for (const configuredUrl of [process.env.URL, process.env.DEPLOY_URL, process.env.DEPLOY_PRIME_URL]) {
+    if (configuredUrl) {
+      try { allowedOrigins.add(new URL(configuredUrl).origin); } catch { /* Ignore invalid platform URLs. */ }
+    }
+  }
+  if (origin && !allowedOrigins.has(origin)) throw new RequestError(403, "Origen no permitido.");
   if (!request.headers.get("content-type")?.includes("application/json")) throw new RequestError(415, "Se requiere JSON.");
   const reader = request.body?.getReader();
   if (!reader) throw new RequestError(400, "Solicitud vacía.");

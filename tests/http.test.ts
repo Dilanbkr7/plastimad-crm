@@ -22,3 +22,12 @@ test("cross-origin writes, invalid JSON and primitive payloads are rejected", as
 test("a valid same-origin request preserves its data", async () => {
   assert.deepEqual(await readBoundedJson(request('{"name":"María"}', { Origin: "https://plastimadshop.com" })), { name: "María" });
 });
+test("Netlify internal deployment URLs accept the public domain but not forged forwarded hosts", async () => {
+  const makeRequest = (origin: string) => new Request("https://deploy--beautiful-otter-5fb5c6.netlify.app/api/orders", {
+    method: "POST", body: "{}", headers: { "Content-Type": "application/json", Origin: origin,
+      "X-Forwarded-Host": "other.example" },
+  });
+  assert.deepEqual(await readBoundedJson(makeRequest("https://plastimadshop.com")), {});
+  await assert.rejects(readBoundedJson(makeRequest("https://other.example")),
+    (error) => error instanceof RequestError && error.status === 403);
+});
