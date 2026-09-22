@@ -1,3 +1,5 @@
+import { commercialHandoffReply } from "@/lib/commercial";
+import { unstable_cache } from "next/cache";
 import { and, asc, eq } from "drizzle-orm";
 
 import { db } from "@/lib/db";
@@ -80,17 +82,6 @@ export function detectWhatsAppIntent(message: string): WhatsAppIntent {
     return "ASESOR";
   }
 
-  if (
-    containsAny(normalized, [
-      "hola",
-      "buenos dias",
-      "buenas tardes",
-      "buenas noches",
-      "informacion",
-    ])
-  ) {
-    return "SALUDO";
-  }
 
   if (
     containsAny(normalized, [
@@ -163,6 +154,18 @@ export function detectWhatsAppIntent(message: string): WhatsAppIntent {
     ])
   ) {
     return "HORARIO";
+  }
+
+  if (
+    containsAny(normalized, [
+      "hola",
+      "buenos dias",
+      "buenas tardes",
+      "buenas noches",
+      "informacion",
+    ])
+  ) {
+    return "SALUDO";
   }
 
   return "DESCONOCIDA";
@@ -238,7 +241,7 @@ function formatUsd(cents: number): string {
   }).format(cents / 100);
 }
 
-async function loadAutomationContext(): Promise<AutomationContext> {
+const loadAutomationContext = unstable_cache(async (): Promise<AutomationContext> => {
   const [settingsRows, productRows, offerRows, zoneRows] = await Promise.all([
     db
       .select({
@@ -299,7 +302,7 @@ async function loadAutomationContext(): Promise<AutomationContext> {
     offers: offerRows,
     deliveryZones: zoneRows,
   };
-}
+}, ["whatsapp-catalog-v2"], { revalidate: 300, tags: ["public-catalog"] });
 
 function buildBaseReply(
   intent: WhatsAppIntent,
@@ -369,7 +372,7 @@ function buildBaseReply(
       return `Nuestro horario de atención humana es de lunes a sábado, de ${context.openTime} a ${context.closeTime}. El asistente automático puede recibir consultas las 24 horas.`;
 
     case "ASESOR":
-      return "Tu conversación quedó asignada a atención humana. Un asesor continuará la atención dentro del horario de lunes a sábado, de 08:00 a 17:00.";
+      return commercialHandoffReply();
 
     case "SALUDO":
       return [
@@ -404,12 +407,7 @@ export async function buildWhatsAppAutomationReply(options: {
       intent: "ASESOR",
       requiresHuman: true,
       isWithinHumanHours,
-      reply: [
-        "Recibimos tu archivo o contenido multimedia.",
-        isWithinHumanHours
-          ? "Un asesor lo revisará y continuará la atención."
-          : "Un asesor lo revisará en la siguiente jornada de atención, de lunes a sábado de 08:00 a 17:00.",
-      ].join("\n"),
+      reply: commercialHandoffReply(true),
     };
   }
 

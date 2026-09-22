@@ -15,7 +15,7 @@ import {
   isLeadStatus,
   leadStatusesRequiringNote,
 } from "@/lib/leads/status";
-import { createClient } from "@/lib/supabase/server";
+import { getCrmUser } from "@/lib/auth";
 
 type RouteContext = {
   params: Promise<{
@@ -57,18 +57,7 @@ export async function PATCH(
   context: RouteContext,
 ) {
   try {
-    const supabase = await createClient();
-
-    const { data, error } =
-      await supabase.auth.getClaims();
-
-    const claims = data?.claims;
-
-    if (
-      error ||
-      !claims ||
-      typeof claims.sub !== "string"
-    ) {
+    if (!await getCrmUser()) {
       return Response.json(
         {
           ok: false,

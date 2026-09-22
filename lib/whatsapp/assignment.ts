@@ -1,4 +1,4 @@
-import { asc, eq } from "drizzle-orm";
+import { and, asc, eq, sql } from "drizzle-orm";
 
 import { db } from "@/lib/db";
 import {
@@ -8,7 +8,9 @@ import {
 
 
 export async function getNextAssignedUserId(): Promise<string | null> {
-  const advisors = await db
+  return db.transaction(async (tx) => {
+    await tx.execute(sql`SELECT pg_advisory_xact_lock(740182)`);
+  const advisors = await tx
     .select({
       supabaseUserId: crmUsers.supabaseUserId,
       rotationOrder: crmUsers.rotationOrder,
@@ -16,7 +18,7 @@ export async function getNextAssignedUserId(): Promise<string | null> {
     })
     .from(crmUsers)
     .where(
-      eq(crmUsers.role, "ASESOR"),
+      and(eq(crmUsers.role, "ASESOR"), eq(crmUsers.active, true)),
     )
     .orderBy(
       asc(crmUsers.rotationOrder),
@@ -32,7 +34,7 @@ export async function getNextAssignedUserId(): Promise<string | null> {
   }
 
 
-  const [state] = await db
+  const [state] = await tx
     .select({
       lastRotationOrder:
         crmAssignmentState.lastRotationOrder,
@@ -58,7 +60,7 @@ export async function getNextAssignedUserId(): Promise<string | null> {
     ) ?? advisors[0];
 
 
-  await db
+  await tx
     .update(crmAssignmentState)
     .set({
       lastRotationOrder:
@@ -73,12 +75,6 @@ export async function getNextAssignedUserId(): Promise<string | null> {
     );
 
 
-  console.log(
-    "ASESOR ASIGNADO:",
-    nextAdvisor.name,
-    nextAdvisor.supabaseUserId,
-  );
-
-
   return nextAdvisor.supabaseUserId;
+  });
 }

@@ -1,12 +1,12 @@
 "use server";
 
 import { eq } from "drizzle-orm";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { db } from "@/lib/db";
 import { businessSettings } from "@/lib/schema";
-import { createClient } from "@/lib/supabase/server";
+import { getCrmUser } from "@/lib/auth";
 import {
   formatEcuadorMobile,
   isValidEcuadorMobile,
@@ -24,16 +24,8 @@ function redirectWithError(code: string): never {
 export async function updateBusinessWhatsApp(
   formData: FormData,
 ) {
-  const supabase = await createClient();
-  const { data, error } = await supabase.auth.getClaims();
-
-  if (
-    error ||
-    !data?.claims ||
-    typeof data.claims.sub !== "string"
-  ) {
-    redirect("/login?next=/crm/settings");
-  }
+  const user = await getCrmUser();
+  if (!user || !["OWNER", "ADMIN"].includes(user.role)) redirect("/login?next=/crm/settings");
 
   const rawNumber = String(
     formData.get("whatsappNumber") ?? "",
@@ -60,7 +52,8 @@ export async function updateBusinessWhatsApp(
     redirectWithError("settings-not-found");
   }
 
-  revalidatePath("/", "layout");
+  updateTag("public-catalog");
+  revalidatePath("/");
   revalidatePath("/crm/settings");
 
   redirect("/crm/settings?saved=1");

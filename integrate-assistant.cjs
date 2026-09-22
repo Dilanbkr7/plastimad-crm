@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports -- One-off CommonJS maintenance script. */
 const fs = require("fs");
 
 const pagePath = "app/page.tsx";

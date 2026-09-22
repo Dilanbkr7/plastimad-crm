@@ -1,3 +1,6 @@
+import { guardPublicRequest, readBoundedJson, requestErrorResponse } from "@/lib/request-guard";
+import { commercialHandoffReply, COMMERCIAL_WHATSAPP_NUMBER } from "@/lib/commercial";
+import { unstable_cache } from "next/cache";
 import { db } from "@/lib/db";
 import {
   businessSettings,
@@ -33,10 +36,6 @@ type AssistantRequestBody = {
   consentAccepted?: unknown;
 };
 
-type RateLimitEntry = {
-  count: number;
-  resetAt: number;
-};
 
 type AssistantContext = {
   businessName: string;
@@ -78,20 +77,6 @@ class ApiError extends Error {
 
 const MAX_BODY_BYTES = 16_384;
 const MAX_MESSAGE_LENGTH = 1_500;
-const RATE_LIMIT_WINDOW_MS = 60_000;
-const RATE_LIMIT_MAX_REQUESTS = 20;
-
-const globalForAssistant = globalThis as typeof globalThis & {
-  __plastimadAssistantRateLimit?: Map<string, RateLimitEntry>;
-};
-
-const assistantRateLimit =
-  globalForAssistant.__plastimadAssistantRateLimit ??
-  new Map<string, RateLimitEntry>();
-
-globalForAssistant.__plastimadAssistantRateLimit =
-  assistantRateLimit;
-
 function jsonResponse(
   body: unknown,
   status = 200,
@@ -263,67 +248,6 @@ function redactPotentialPersonalData(message: string): string {
     );
 }
 
-function getClientKey(request: Request): string {
-  const forwardedFor =
-    request.headers.get("x-forwarded-for") ?? "";
-  const ip =
-    forwardedFor.split(",")[0]?.trim() ||
-    request.headers.get("x-real-ip") ||
-    "unknown";
-  const userAgent = (
-    request.headers.get("user-agent") ?? "unknown"
-  ).slice(0, 120);
-
-  return `${ip}:${userAgent}`;
-}
-
-function checkRateLimit(
-  request: Request,
-): { allowed: true } | {
-  allowed: false;
-  retryAfterSeconds: number;
-} {
-  const now = Date.now();
-  const key = getClientKey(request);
-  const current = assistantRateLimit.get(key);
-
-  if (!current || current.resetAt <= now) {
-    assistantRateLimit.set(key, {
-      count: 1,
-      resetAt: now + RATE_LIMIT_WINDOW_MS,
-    });
-
-    return {
-      allowed: true,
-    };
-  }
-
-  if (current.count >= RATE_LIMIT_MAX_REQUESTS) {
-    return {
-      allowed: false,
-      retryAfterSeconds: Math.max(
-        1,
-        Math.ceil((current.resetAt - now) / 1_000),
-      ),
-    };
-  }
-
-  current.count += 1;
-  assistantRateLimit.set(key, current);
-
-  if (assistantRateLimit.size > 5_000) {
-    for (const [storedKey, entry] of assistantRateLimit) {
-      if (entry.resetAt <= now) {
-        assistantRateLimit.delete(storedKey);
-      }
-    }
-  }
-
-  return {
-    allowed: true,
-  };
-}
-
 function formatUsd(cents: number): string {
   return new Intl.NumberFormat("es-EC", {
     style: "currency",
@@ -341,7 +265,7 @@ function getWhatsappUrl(
   return createWhatsAppUrl(whatsappNumber) || null;
 }
 
-async function loadAssistantContext(): Promise<AssistantContext> {
+const loadAssistantContext = unstable_cache(async (): Promise<AssistantContext> => {
   const [settingsRows, productRows, offerRows, zoneRows] =
     await Promise.all([
       db
@@ -417,7 +341,7 @@ async function loadAssistantContext(): Promise<AssistantContext> {
   return {
     businessName: settings?.businessName ?? "Plastimad",
     phone: settings?.phone ?? null,
-    whatsappNumber: settings?.whatsappNumber ?? null,
+    whatsappNumber: COMMERCIAL_WHATSAPP_NUMBER,
     email: settings?.email ?? null,
     freeDeliveryEnabled:
       settings?.freeDeliveryEnabled ?? false,
@@ -427,7 +351,7 @@ async function loadAssistantContext(): Promise<AssistantContext> {
     offers: offerRows,
     deliveryZones: zoneRows,
   };
-}
+}, ["web-assistant-catalog-v2"], { revalidate: 300, tags: ["public-catalog"] });
 
 function buildBaseReply(
   intent: AssistantIntent,
@@ -529,7 +453,7 @@ function buildBaseReply(
   ].join("\n");
 
     case "ASESOR":
-      return "He marcado esta conversación para atención humana. Comparte tus datos únicamente después de aceptar su almacenamiento, y el equipo comercial podrá continuar el contacto.";
+      return commercialHandoffReply();
 
     case "DESCONOCIDA":
     default:
@@ -590,55 +514,11 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const rateLimit = checkRateLimit(request);
-
-  if (!rateLimit.allowed) {
-    return jsonResponse(
-      {
-        ok: false,
-        message:
-          "Se alcanzó temporalmente el límite de mensajes. Inténtalo nuevamente en unos segundos.",
-      },
-      429,
-      {
-        "Retry-After": String(
-          rateLimit.retryAfterSeconds,
-        ),
-      },
-    );
-  }
-
-  const contentLength = Number(
-    request.headers.get("content-length") ?? "0",
-  );
-
-  if (
-    Number.isFinite(contentLength) &&
-    contentLength > MAX_BODY_BYTES
-  ) {
-    return jsonResponse(
-      {
-        ok: false,
-        message: "La solicitud excede el tamaño permitido.",
-      },
-      413,
-    );
-  }
-
   let body: AssistantRequestBody;
-
   try {
-    body = (await request.json()) as AssistantRequestBody;
-  } catch {
-    return jsonResponse(
-      {
-        ok: false,
-        message:
-          "El cuerpo de la solicitud no contiene JSON válido.",
-      },
-      400,
-    );
-  }
+    body = await readBoundedJson(request, MAX_BODY_BYTES);
+    await guardPublicRequest(request, "assistant", 20);
+  } catch (error) { return requestErrorResponse(error); }
 
   const conversationPublicId = readText(
     body.conversationId,
@@ -745,10 +625,7 @@ export async function POST(request: Request) {
             })
             .from(conversations)
             .where(
-              eq(
-                conversations.publicId,
-                conversationPublicId,
-              ),
+              and(eq(conversations.publicId, conversationPublicId), eq(conversations.channel, "WEB")),
             )
             .limit(1);
 

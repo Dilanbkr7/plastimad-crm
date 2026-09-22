@@ -19,6 +19,8 @@
 
 # production
 /build
+/.backups/
+/.netlify/
 
 # misc
 .DS_Store

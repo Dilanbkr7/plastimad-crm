@@ -11,6 +11,7 @@ import {
 } from "react";
 
 import { createWhatsAppUrl } from "@/lib/whatsapp";
+import { trackLead } from "@/lib/tracking";
 
 type ChatRole = "assistant" | "user";
 
@@ -216,6 +217,7 @@ export default function AssistantChat({
       payload.data.requiresHuman,
     );
     setLeadSaved(payload.data.leadSaved);
+    if (payload.data.leadSaved) trackLead(`chat-${payload.data.conversationId}`, "Contacto web registrado");
 
     if (
       payload.data.requiresHuman &&

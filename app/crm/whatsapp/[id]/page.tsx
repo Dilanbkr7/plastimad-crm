@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element -- Protected media requires the browser session cookie; never send it through a public image optimizer. */
 import Link from "next/link";
 import { and, asc, eq } from "drizzle-orm";
 import { notFound } from "next/navigation";
@@ -215,7 +216,7 @@ export default async function WhatsAppConversationPage({
                   >
 
                     {message.mediaId && message.messageType === "image" ? (
-                      <img
+                      <img loading="lazy" decoding="async"
                         src={`/api/whatsapp/media/${message.mediaId}`}
                         alt="Imagen recibida"
                         className="max-w-sm rounded-xl"
@@ -224,7 +225,7 @@ export default async function WhatsAppConversationPage({
 
 
                     {message.mediaId && message.messageType === "audio" ? (
-                      <audio
+                      <audio preload="none"
                         controls
                         className="w-full max-w-sm"
                       >
@@ -237,7 +238,7 @@ export default async function WhatsAppConversationPage({
 
 
                     {message.mediaId && message.messageType === "video" ? (
-                      <video
+                      <video preload="none"
                         controls
                         className="max-w-sm rounded-xl"
                       >

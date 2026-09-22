@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element -- Protected media requires the browser session cookie; never send it through a public image optimizer. */
 import Link from "next/link";
 import { desc, eq, inArray } from "drizzle-orm";
 import { connection } from "next/server";
@@ -186,9 +187,9 @@ export default async function WhatsAppInboxPage() {
                         </p>
 
 
-                        {latest?.mediaId && latest.mediaType?.startsWith("image") ? (
+                        {latest?.mediaId && (latest.mediaType === "IMAGE" || latest.mediaType?.startsWith("image")) ? (
                           <div className="mt-2">
-                            <img
+                            <img loading="lazy" decoding="async"
                               src={`/api/whatsapp/media/${latest.mediaId}`}
                               alt="Imagen recibida"
                               className="h-24 w-24 rounded-lg object-cover"

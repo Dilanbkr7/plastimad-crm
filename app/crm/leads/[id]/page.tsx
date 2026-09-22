@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element -- Protected media requires the browser session cookie; never send it through a public image optimizer. */
 import Link from "next/link";
 import {
   asc,
@@ -534,9 +535,9 @@ export default async function LeadDetailPage({
                                         </div>
 
                                         {message.mediaId &&
-                                        message.mediaType?.startsWith("image") ? (
+                                        (message.mediaType === "IMAGE" || message.mediaType?.startsWith("image")) ? (
 
-                                          <img
+                                          <img loading="lazy" decoding="async"
                                           src={`/api/whatsapp/media/${message.mediaId}`}
                                           alt="Imagen recibida"
                                           className="mt-3 max-w-sm rounded-xl"

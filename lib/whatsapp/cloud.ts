@@ -231,6 +231,7 @@ export async function sendWhatsAppText(options: {
     },
     body: JSON.stringify(payload),
     cache: "no-store",
+    signal: AbortSignal.timeout(10_000),
   });
 
   if (!response.ok) {
@@ -251,11 +252,8 @@ export async function sendWhatsAppText(options: {
   const messageId = data.messages?.[0]?.id;
 
   if (!messageId) {
-    throw new WhatsAppApiError({
-      status: 502,
-      message: "Meta aceptó la solicitud, pero no devolvió el identificador del mensaje.",
-      details: data,
-    });
+    // An accepted request with an unreadable result must never be retried blindly.
+    throw new Error("Meta aceptó la solicitud, pero no confirmó el identificador del mensaje.");
   }
 
   return { messageId };
@@ -278,6 +276,7 @@ export async function markWhatsAppMessageRead(
       message_id: messageId,
     }),
     cache: "no-store",
+    signal: AbortSignal.timeout(10_000),
   });
 
   if (!response.ok) {
