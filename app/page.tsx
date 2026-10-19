@@ -188,13 +188,6 @@ export default async function HomePage() {
           <nav className="hidden items-center gap-7 text-sm font-bold text-slate-700 md:flex">
             <a
               className="transition hover:text-[var(--brand-primary)]"
-              href="#beneficios"
-            >
-              Beneficios
-            </a>
-
-            <a
-              className="transition hover:text-[var(--brand-primary)]"
               href="#producto"
             >
               Producto
@@ -320,66 +313,6 @@ export default async function HomePage() {
                 ))}
               </div>
             </div>
-          </div>
-        </div>
-      </section>
-
-      <section
-        id="beneficios"
-        className="py-20"
-      >
-        <div className="mx-auto max-w-7xl px-5 lg:px-8">
-          <div className="mx-auto max-w-3xl text-center">
-            <p className="text-sm font-bold uppercase tracking-[0.2em] text-[var(--brand-primary)]">
-              Por qué elegir Plastimad
-            </p>
-
-            <h2 className="mt-4 text-3xl font-black tracking-tight sm:text-4xl">
-              Material durable, diseño funcional y
-              menor impacto ambiental
-            </h2>
-          </div>
-
-          <div className="mt-12 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
-            {[
-              {
-                icon: "♻",
-                title: "Plástico reciclado",
-                text: "Transformamos material recuperado en productos útiles y durables.",
-              },
-              {
-                icon: "☀",
-                title: "Uso interior y exterior",
-                text: "Pensada para hogares, terrazas, jardines y proyectos comerciales.",
-              },
-              {
-                icon: "✓",
-                title: "Fácil mantenimiento",
-                text: "Una solución práctica para espacios que necesitan resistencia y limpieza sencilla.",
-              },
-              {
-                icon: "🚚",
-                title: `Entrega en ${settings.freeDeliveryCity}`,
-                text: "Entrega local gratuita y coordinación de envíos a provincias.",
-              },
-            ].map((benefit) => (
-              <article
-                key={benefit.title}
-                className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
-              >
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50 text-2xl text-[var(--brand-primary)]">
-                  {benefit.icon}
-                </div>
-
-                <h3 className="mt-5 text-lg font-black">
-                  {benefit.title}
-                </h3>
-
-                <p className="mt-3 text-sm leading-6 text-slate-600">
-                  {benefit.text}
-                </p>
-              </article>
-            ))}
           </div>
         </div>
       </section>
