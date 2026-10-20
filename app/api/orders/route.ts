@@ -10,6 +10,7 @@ import {
   productVariants,
 } from "@/lib/schema";
 import { and, desc, eq, sql } from "drizzle-orm";
+import { isAvailablePaymentMethod, validateBillingDocument } from "@/lib/orders/billing";
 
 /**
  * Datos que podrá enviar la futura landing.
@@ -22,6 +23,8 @@ type CreateOrderBody = {
   name?: unknown;
   phone?: unknown;
   email?: unknown;
+  billingDocumentType?: unknown;
+  billingDocumentNumber?: unknown;
 
   offerId?: unknown;
   variantId?: unknown;
@@ -42,13 +45,6 @@ type CreateOrderBody = {
   utmCampaign?: unknown;
   utmContent?: unknown;
 };
-
-const allowedPaymentMethods = new Set([
-  "CONTRAENTREGA",
-  "TRANSFERENCIA",
-  "DEUNA",
-  "PAYPHONE",
-]);
 
 const allowedSources = new Set([
   "DIRECTO",
@@ -142,6 +138,11 @@ export async function POST(request: Request) {
     const name = readText(body.name, 120);
     const phone = normalizePhone(body.phone);
     const email = readText(body.email, 255).toLowerCase();
+    const billingError = validateBillingDocument(body.billingDocumentType, body.billingDocumentNumber);
+    if (billingError) throw new RequestError(400, billingError);
+    // Validation preserves leading zeros and rejects oversized values rather than truncating.
+    const billingDocumentType = body.billingDocumentType as string;
+    const billingDocumentNumber = body.billingDocumentNumber as string;
 
     const province = readText(body.province, 100);
     const city = readText(body.city, 100);
@@ -299,11 +300,11 @@ export async function POST(request: Request) {
       );
     }
 
-    if (!allowedPaymentMethods.has(paymentMethod)) {
+    if (!isAvailablePaymentMethod(paymentMethod)) {
       return Response.json(
         {
           ok: false,
-          message: "El método de pago seleccionado no es válido.",
+          message: "Por el momento solo está disponible el pago contraentrega.",
         },
         {
           status: 400,
@@ -416,7 +417,7 @@ export async function POST(request: Request) {
         {
           ok: false,
           message:
-            "La contraentrega todavía no está disponible para esa zona. Selecciona transferencia u otro método habilitado.",
+            "La contraentrega todavía no está disponible para esa zona. Selecciona una zona con contraentrega.",
         },
         {
           status: 400,
@@ -567,6 +568,8 @@ export async function POST(request: Request) {
           sector: sector || null,
           reference: reference || null,
           notes: notes || null,
+          billingDocumentType,
+          billingDocumentNumber,
 
           status: "RECIBIDO",
 

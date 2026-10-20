@@ -541,6 +541,10 @@ export const orders = pgTable(
 
     notes: text("notes"),
 
+    // Snapshot per order; nullable to preserve orders placed before billing was required.
+    billingDocumentType: varchar("billing_document_type", { length: 10 }),
+    billingDocumentNumber: varchar("billing_document_number", { length: 13 }),
+
     /**
      * Estados del proceso:
      * RECIBIDO

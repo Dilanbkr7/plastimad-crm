@@ -46,6 +46,13 @@
 
 Prueba de integración opcional: definir `RUN_DATABASE_TESTS=1` y ejecutar `npm test`. Las filas de prueba se revierten; no envía WhatsApp. Las secuencias pueden avanzar, lo cual no elimina registros.
 
+## Facturación y contraentrega (20/10/2026)
+
+- Antes de desplegar estos cambios, ejecutar `node scripts/apply-order-billing.mjs` con la base de datos del entorno correspondiente. Añade dos columnas opcionales a `orders`, sin modificar los pedidos anteriores. Se aplicó a la base configurada en `.env.local` el 20/10/2026.
+- Los nuevos pedidos requieren tipo de documento (CEDULA/RUC) y número de 10/13 dígitos. La validación es de formato, no una consulta al Registro Civil o al SRI. Se guardan por pedido y aparecen en el CRM y el resumen de WhatsApp.
+- Solo se admite CONTRAENTREGA para nuevos pedidos. Las zonas sin `cashOnDeliveryAvailable` no se ofrecen en el formulario. No se alteran pagos históricos ni la cobertura configurada.
+- Prueba de persistencia: `RUN_DATABASE_TESTS=1` con `npx tsx --test tests/billing-database.test.ts`. La transacción se revierte; las secuencias pueden avanzar.
+
 ## Campañas y créditos
 
 - Auditoría del panel realizada el 22/09/2026: período 22/08–21/09, 395 créditos. El gráfico atribuye al 10/09 un pico de 276 créditos de bandwidth, 4,9 de solicitudes y 1,1 de funciones; no registra inferencia de IA. El gráfico de transferencia muestra 14,7 GB ese día. Las cifras entre gráficas tienen redondeos y límites de fecha distintos; no tratarlas como una conciliación contable exacta.

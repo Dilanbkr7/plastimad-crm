@@ -360,11 +360,8 @@ function buildBaseReply(
 
     case "PAGO":
       return [
-        "Métodos de pago disponibles:",
+        "Por el momento solo aceptamos pago contraentrega:",
         "• Contraentrega en zonas habilitadas.",
-        "• Transferencia.",
-        "• Deuna.",
-        "• PayPhone.",
         "La disponibilidad se confirma según la zona de entrega.",
       ].join("\n");
 

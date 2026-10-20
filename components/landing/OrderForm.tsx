@@ -9,6 +9,7 @@ import {
 
 import { createWhatsAppUrl } from "@/lib/whatsapp";
 import { trackLead } from "@/lib/tracking";
+import { validateBillingDocument, type BillingDocumentType } from "@/lib/orders/billing";
 
 type LandingOffer = {
   id: number;
@@ -114,13 +115,14 @@ export default function OrderForm({
   zones,
   whatsappNumber,
 }: OrderFormProps) {
+  const availableZones = useMemo(() => zones.filter((zone) => zone.cashOnDeliveryAvailable), [zones]);
   const featuredOffer =
     offers.find((offer) => offer.featured) ??
     offers[0];
 
   const initialZone =
-    zones.find((zone) => zone.code === "quito-local") ??
-    zones[0];
+    availableZones.find((zone) => zone.code === "quito-local") ??
+    availableZones[0];
 
   const [selectedOfferId, setSelectedOfferId] =
     useState<number>(featuredOffer?.id ?? 0);
@@ -128,8 +130,8 @@ export default function OrderForm({
   const [selectedZoneId, setSelectedZoneId] =
     useState<number>(initialZone?.id ?? 0);
 
-  const [paymentMethod, setPaymentMethod] =
-    useState("CONTRAENTREGA");
+  const paymentMethod = "CONTRAENTREGA";
+  const [billingDocumentType, setBillingDocumentType] = useState<BillingDocumentType | "">("");
 
   const [province, setProvince] =
     useState(
@@ -160,16 +162,16 @@ export default function OrderForm({
 
   const selectedZone = useMemo(
     () =>
-      zones.find(
+      availableZones.find(
         (zone) => zone.id === selectedZoneId,
       ),
-    [zones, selectedZoneId],
+    [availableZones, selectedZoneId],
   );
 
   function handleZoneChange(
     nextZoneId: number,
   ) {
-    const nextZone = zones.find(
+    const nextZone = availableZones.find(
       (zone) => zone.id === nextZoneId,
     );
 
@@ -183,13 +185,6 @@ export default function OrderForm({
       setCity("");
     }
 
-    if (
-      nextZone &&
-      !nextZone.cashOnDeliveryAvailable &&
-      paymentMethod === "CONTRAENTREGA"
-    ) {
-      setPaymentMethod("TRANSFERENCIA");
-    }
   }
 
   const displayedDeliveryFee =
@@ -221,6 +216,9 @@ export default function OrderForm({
       const formData = new FormData(
         event.currentTarget,
       );
+      const billingDocumentNumber = String(formData.get("billingDocumentNumber") ?? "");
+      const billingError = validateBillingDocument(billingDocumentType, billingDocumentNumber);
+      if (billingError) throw new Error(billingError);
 
       const currentParams = new URLSearchParams(
         window.location.search,
@@ -236,6 +234,8 @@ export default function OrderForm({
         email: String(
           formData.get("email") ?? "",
         ),
+        billingDocumentType,
+        billingDocumentNumber,
 
         offerId: selectedOffer.id,
         zoneId: selectedZone.id,
@@ -306,6 +306,7 @@ export default function OrderForm({
         `Pedido: #${order.id}`,
         `Cliente: ${body.name}`,
         `Teléfono: ${body.phone}`,
+        `Documento de facturación (${billingDocumentType === "CEDULA" ? "Cédula" : "RUC"}): ${billingDocumentNumber}`,
         `Producto: ${productName}`,
         `Combo: ${selectedOffer.name}`,
         `Cantidad: ${selectedOffer.quantity}`,
@@ -358,11 +359,11 @@ export default function OrderForm({
 
   if (
     offers.length === 0 ||
-    zones.length === 0
+    availableZones.length === 0
   ) {
     return (
       <section className="rounded-3xl border border-amber-200 bg-amber-50 p-6 text-amber-900">
-        El catálogo todavía no está disponible.
+        Por el momento no hay ofertas o zonas disponibles para pago contraentrega.
         Comunícate directamente con Plastimad.
       </section>
     );
@@ -487,7 +488,7 @@ export default function OrderForm({
         >
           <div>
             <p className="text-sm font-bold uppercase tracking-[0.18em] text-[var(--brand-primary)]">
-              Datos de entrega
+              Datos de entrega y facturación
             </p>
 
             <h3 className="mt-3 text-2xl font-black text-slate-950">
@@ -530,6 +531,39 @@ export default function OrderForm({
               />
             </label>
 
+            <label className="text-sm font-semibold text-slate-700">
+              Documento de facturación *
+              <select
+                className={inputClass}
+                name="billingDocumentType"
+                required
+                value={billingDocumentType}
+                onChange={(event) => setBillingDocumentType(event.target.value as BillingDocumentType | "")}
+              >
+                <option value="" disabled>Selecciona cédula o RUC</option>
+                <option value="CEDULA">Cédula</option>
+                <option value="RUC">RUC</option>
+              </select>
+            </label>
+
+            <label className="text-sm font-semibold text-slate-700">
+              {billingDocumentType === "RUC" ? "Número de RUC" : billingDocumentType === "CEDULA" ? "Número de cédula" : "Número de documento"} *
+              <input
+                className={inputClass}
+                name="billingDocumentNumber"
+                type="text"
+                inputMode="numeric"
+                autoComplete="off"
+                required
+                disabled={!billingDocumentType}
+                minLength={billingDocumentType === "RUC" ? 13 : 10}
+                maxLength={billingDocumentType === "RUC" ? 13 : 10}
+                pattern={billingDocumentType === "RUC" ? "[0-9]{13}" : "[0-9]{10}"}
+                title={billingDocumentType === "RUC" ? "Ingresa los 13 dígitos del RUC, sin espacios ni guiones." : "Ingresa los 10 dígitos de la cédula, sin espacios ni guiones."}
+                placeholder={billingDocumentType === "RUC" ? "13 dígitos" : billingDocumentType === "CEDULA" ? "10 dígitos" : "Selecciona primero el documento"}
+              />
+            </label>
+
             <label className="text-sm font-semibold text-slate-700 sm:col-span-2">
               Correo electrónico
               <input
@@ -553,7 +587,7 @@ export default function OrderForm({
                   )
                 }
               >
-                {zones.map((zone) => (
+                {availableZones.map((zone) => (
                   <option
                     key={zone.id}
                     value={zone.id}
@@ -562,6 +596,9 @@ export default function OrderForm({
                   </option>
                 ))}
               </select>
+              <span className="mt-2 block text-xs font-normal text-slate-500">
+                Solo se muestran zonas con pago contraentrega disponible.
+              </span>
             </label>
 
             <label className="text-sm font-semibold text-slate-700">
@@ -650,87 +687,11 @@ export default function OrderForm({
           </div>
 
           <fieldset className="mt-7">
-            <legend className="text-sm font-bold text-slate-800">
-              Método de pago
-            </legend>
-
-            <div className="mt-3 grid gap-3 sm:grid-cols-2">
-              {selectedZone
-                ?.cashOnDeliveryAvailable && (
-                <label
-                  className={`cursor-pointer rounded-xl border p-4 transition ${
-                    paymentMethod ===
-                    "CONTRAENTREGA"
-                      ? "border-[var(--brand-primary)] bg-emerald-50"
-                      : "border-slate-200"
-                  }`}
-                >
-                  <input
-                    className="mr-2"
-                    type="radio"
-                    name="paymentMethod"
-                    value="CONTRAENTREGA"
-                    checked={
-                      paymentMethod ===
-                      "CONTRAENTREGA"
-                    }
-                    onChange={() =>
-                      setPaymentMethod(
-                        "CONTRAENTREGA",
-                      )
-                    }
-                  />
-
-                  <span className="font-bold text-slate-900">
-                    Contraentrega
-                  </span>
-
-                  <p className="mt-2 text-xs leading-5 text-slate-500">
-                    Paga cuando recibas tu pedido.
-                  </p>
-                </label>
-              )}
-
-              <label
-                className={`cursor-pointer rounded-xl border p-4 transition ${
-                  paymentMethod ===
-                  "TRANSFERENCIA"
-                    ? "border-[var(--brand-primary)] bg-emerald-50"
-                    : "border-slate-200"
-                }`}
-              >
-                <input
-                  className="mr-2"
-                  type="radio"
-                  name="paymentMethod"
-                  value="TRANSFERENCIA"
-                  checked={
-                    paymentMethod ===
-                    "TRANSFERENCIA"
-                  }
-                  onChange={() =>
-                    setPaymentMethod(
-                      "TRANSFERENCIA",
-                    )
-                  }
-                />
-
-                <span className="font-bold text-slate-900">
-                  Transferencia
-                </span>
-
-                <p className="mt-2 text-xs leading-5 text-slate-500">
-                  Plastimad enviará los datos por
-                  WhatsApp.
-                </p>
-              </label>
+            <legend className="text-sm font-bold text-slate-800">Método de pago</legend>
+            <div className="mt-3 rounded-xl border border-[var(--brand-primary)] bg-emerald-50 p-4">
+              <p className="font-bold text-slate-900">Contraentrega</p>
+              <p className="mt-2 text-xs leading-5 text-slate-600">Paga cuando recibas tu pedido.</p>
             </div>
-
-            <p className="mt-3 text-xs leading-5 text-slate-500">
-              Deuna y PayPhone se habilitarán cuando
-              Plastimad entregue las credenciales
-              comerciales de producción.
-            </p>
           </fieldset>
 
           <label className="mt-7 flex items-start gap-3 text-sm leading-6 text-slate-600">
@@ -742,7 +703,7 @@ export default function OrderForm({
 
             <span>
               Autorizo el uso de mis datos para
-              registrar, coordinar y entregar este
+              registrar, facturar, coordinar y entregar este
               pedido.
             </span>
           </label>

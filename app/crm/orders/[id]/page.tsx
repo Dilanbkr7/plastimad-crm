@@ -91,6 +91,8 @@ export default async function OrderDetailPage({
       customerName: customers.name,
       phone: customers.phone,
       email: customers.email,
+      billingDocumentType: orders.billingDocumentType,
+      billingDocumentNumber: orders.billingDocumentNumber,
 
       productText: orders.product,
       productName: products.name,
@@ -273,6 +275,14 @@ export default async function OrderDetailPage({
 
                     <dd className="mt-1 font-medium text-slate-900">
                       {readableValue(order.email)}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-slate-500">
+                      Documento de facturación{order.billingDocumentType ? ` · ${order.billingDocumentType === "CEDULA" ? "Cédula" : order.billingDocumentType}` : ""}
+                    </dt>
+                    <dd className="mt-1 font-medium text-slate-900">
+                      {readableValue(order.billingDocumentNumber)}
                     </dd>
                   </div>
                 </dl>

@@ -448,8 +448,8 @@ export default async function HomePage() {
 
             <p className="mt-4 text-xs leading-5 text-slate-500">
               Los datos ingresados se utilizan
-              exclusivamente para registrar y
-              coordinar el pedido.
+              exclusivamente para registrar,
+              facturar y coordinar el pedido.
             </p>
           </div>
         </div>

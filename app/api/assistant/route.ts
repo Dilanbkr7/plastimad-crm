@@ -438,11 +438,8 @@ function buildBaseReply(
 
     case "PAGO":
       return [
-        "Los métodos configurados para pedidos son:",
+        "Por el momento solo aceptamos pago contraentrega:",
         "• Contraentrega, únicamente en zonas habilitadas.",
-        "• Transferencia.",
-        "• Deuna.",
-        "• PayPhone.",
         "La disponibilidad definitiva se valida al registrar el pedido y según la zona de entrega.",
       ].join("\n");
 
