@@ -302,7 +302,7 @@ const loadAutomationContext = unstable_cache(async (): Promise<AutomationContext
     offers: offerRows,
     deliveryZones: zoneRows,
   };
-}, ["whatsapp-catalog-v2"], { revalidate: 300, tags: ["public-catalog"] });
+}, ["whatsapp-catalog-v3"], { revalidate: 300, tags: ["public-catalog"] });
 
 function buildBaseReply(
   intent: WhatsAppIntent,

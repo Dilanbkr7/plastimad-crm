@@ -307,9 +307,9 @@ export const productVariants = pgTable(
  * Cada fila define una cantidad y su precio total.
  *
  * Ejemplos:
- * 1 unidad  = 5500 centavos
- * 2 unidades = 8500 centavos
- * 3 unidades = 10500 centavos
+ * 1 unidad  = 4000 centavos
+ * 2 unidades = 7000 centavos
+ * 3 unidades = 10000 centavos
  */
 export const offers = pgTable(
   "offers",

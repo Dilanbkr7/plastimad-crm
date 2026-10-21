@@ -118,7 +118,7 @@ const loadLanding = unstable_cache(async () => {
     .orderBy(asc(deliveryZones.id));
 
   return { settings, product, offerRows, zoneRows };
-}, ["landing-v2"], { revalidate: 300, tags: ["public-catalog"] });
+}, ["landing-v3"], { revalidate: 300, tags: ["public-catalog"] });
 
 export default async function HomePage() {
   const { settings, product, offerRows, zoneRows } = await loadLanding();

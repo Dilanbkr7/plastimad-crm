@@ -351,7 +351,7 @@ const loadAssistantContext = unstable_cache(async (): Promise<AssistantContext> 
     offers: offerRows,
     deliveryZones: zoneRows,
   };
-}, ["web-assistant-catalog-v2"], { revalidate: 300, tags: ["public-catalog"] });
+}, ["web-assistant-catalog-v3"], { revalidate: 300, tags: ["public-catalog"] });
 
 function buildBaseReply(
   intent: AssistantIntent,
