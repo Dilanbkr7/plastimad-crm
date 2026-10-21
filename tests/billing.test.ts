@@ -2,12 +2,18 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { isAvailablePaymentMethod, validateBillingDocument } from "../lib/orders/billing";
 
-test("billing requires an explicit supported document type and string number", () => {
+test("billing accepts omitted documents but rejects partial or unsupported details", () => {
+  for (const type of [undefined, null, ""]) {
+    for (const number of [undefined, null, ""]) assert.equal(validateBillingDocument(type, number), null);
+  }
   for (const type of [undefined, "", "PASAPORTE", "cedula"]) {
     assert.ok(validateBillingDocument(type, "0123456789"));
   }
   assert.ok(validateBillingDocument("CEDULA", 1234567890));
   assert.ok(validateBillingDocument("RUC", null));
+  assert.ok(validateBillingDocument("CEDULA", ""));
+  assert.ok(validateBillingDocument("PASAPORTE", ""));
+  assert.ok(validateBillingDocument("", " "));
 });
 
 test("billing validates length and digits without losing leading zeros", () => {

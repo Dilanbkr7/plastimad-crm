@@ -141,8 +141,8 @@ export async function POST(request: Request) {
     const billingError = validateBillingDocument(body.billingDocumentType, body.billingDocumentNumber);
     if (billingError) throw new RequestError(400, billingError);
     // Validation preserves leading zeros and rejects oversized values rather than truncating.
-    const billingDocumentType = body.billingDocumentType as string;
-    const billingDocumentNumber = body.billingDocumentNumber as string;
+    const billingDocumentType = (body.billingDocumentType as string | null | undefined) || null;
+    const billingDocumentNumber = (body.billingDocumentNumber as string | null | undefined) || null;
 
     const province = readText(body.province, 100);
     const city = readText(body.city, 100);

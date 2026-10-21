@@ -306,7 +306,9 @@ export default function OrderForm({
         `Pedido: #${order.id}`,
         `Cliente: ${body.name}`,
         `Teléfono: ${body.phone}`,
-        `Documento de facturación (${billingDocumentType === "CEDULA" ? "Cédula" : "RUC"}): ${billingDocumentNumber}`,
+        billingDocumentType
+          ? `Documento de facturación (${billingDocumentType === "CEDULA" ? "Cédula" : "RUC"}): ${billingDocumentNumber}`
+          : "Datos de facturación: por completar con el equipo comercial.",
         `Producto: ${productName}`,
         `Combo: ${selectedOffer.name}`,
         `Cantidad: ${selectedOffer.quantity}`,
@@ -531,22 +533,21 @@ export default function OrderForm({
               />
             </label>
 
-            <label className="text-sm font-semibold text-slate-700">
-              Documento de facturación *
+            <label className={`text-sm font-semibold text-slate-700 ${!billingDocumentType ? "sm:col-span-2" : ""}`}>
+              Documento de facturación (opcional)
               <select
                 className={inputClass}
                 name="billingDocumentType"
-                required
                 value={billingDocumentType}
                 onChange={(event) => setBillingDocumentType(event.target.value as BillingDocumentType | "")}
               >
-                <option value="" disabled>Selecciona cédula o RUC</option>
+                <option value="">Continuar sin cédula ni RUC</option>
                 <option value="CEDULA">Cédula</option>
                 <option value="RUC">RUC</option>
               </select>
             </label>
 
-            <label className="text-sm font-semibold text-slate-700">
+            {billingDocumentType && <label className="text-sm font-semibold text-slate-700">
               {billingDocumentType === "RUC" ? "Número de RUC" : billingDocumentType === "CEDULA" ? "Número de cédula" : "Número de documento"} *
               <input
                 className={inputClass}
@@ -562,7 +563,10 @@ export default function OrderForm({
                 title={billingDocumentType === "RUC" ? "Ingresa los 13 dígitos del RUC, sin espacios ni guiones." : "Ingresa los 10 dígitos de la cédula, sin espacios ni guiones."}
                 placeholder={billingDocumentType === "RUC" ? "13 dígitos" : billingDocumentType === "CEDULA" ? "10 dígitos" : "Selecciona primero el documento"}
               />
-            </label>
+            </label>}
+            <p className="text-xs leading-5 text-slate-500 sm:col-span-2">
+              Puedes continuar sin estos datos y completarlos después con el equipo comercial.
+            </p>
 
             <label className="text-sm font-semibold text-slate-700 sm:col-span-2">
               Correo electrónico

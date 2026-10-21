@@ -24,7 +24,7 @@ export default function PrivacidadPage() {
       <h1>Política de Privacidad</h1>
 
       <p>
-        <strong>Última actualización:</strong> 20 de octubre de 2026
+        <strong>Última actualización:</strong> 21 de octubre de 2026
       </p>
 
       <p>
@@ -59,7 +59,7 @@ export default function PrivacidadPage() {
 
       <ul>
         <li>Nombre y datos de identificación proporcionados voluntariamente.</li>
-        <li>Tipo y número de cédula o RUC requeridos para la facturación de pedidos.</li>
+        <li>Tipo y número de cédula o RUC, cuando el cliente los proporciona para la facturación de pedidos.</li>
         <li>Número de teléfono.</li>
         <li>Correo electrónico.</li>
         <li>Datos necesarios para gestionar pedidos y entregas.</li>

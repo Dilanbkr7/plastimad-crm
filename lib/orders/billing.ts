@@ -2,6 +2,9 @@ export type BillingDocumentType = "CEDULA" | "RUC";
 
 /** Format validation only; does not query civil-registry or tax records. */
 export function validateBillingDocument(type: unknown, number: unknown): string | null {
+  const noType = type === undefined || type === null || type === "";
+  const noNumber = number === undefined || number === null || number === "";
+  if (noType && noNumber) return null;
   if (type !== "CEDULA" && type !== "RUC") {
     return "Selecciona cédula o RUC para la facturación.";
   }

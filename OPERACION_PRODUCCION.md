@@ -49,7 +49,7 @@ Prueba de integración opcional: definir `RUN_DATABASE_TESTS=1` y ejecutar `npm 
 ## Facturación y contraentrega (20/10/2026)
 
 - Antes de desplegar estos cambios, ejecutar `node scripts/apply-order-billing.mjs` con la base de datos del entorno correspondiente. Añade dos columnas opcionales a `orders`, sin modificar los pedidos anteriores. Se aplicó a la base configurada en `.env.local` el 20/10/2026.
-- Los nuevos pedidos requieren tipo de documento (CEDULA/RUC) y número de 10/13 dígitos. La validación es de formato, no una consulta al Registro Civil o al SRI. Se guardan por pedido y aparecen en el CRM y el resumen de WhatsApp.
+- Desde el 21/10/2026 se puede continuar sin cédula ni RUC: ambos campos se guardan como NULL. Si el cliente elige CEDULA/RUC, debe completar el número de 10/13 dígitos. La validación es de formato, no una consulta al Registro Civil o al SRI. Se guardan por pedido y aparecen en el CRM y el resumen de WhatsApp; si faltan, el resumen indica que quedan por completar con el equipo comercial.
 - Solo se admite CONTRAENTREGA para nuevos pedidos. Las zonas sin `cashOnDeliveryAvailable` no se ofrecen en el formulario. No se alteran pagos históricos ni la cobertura configurada.
 - Prueba de persistencia: `RUN_DATABASE_TESTS=1` con `npx tsx --test tests/billing-database.test.ts`. La transacción se revierte; las secuencias pueden avanzar.
 
